@@ -161,7 +161,7 @@ export async function deleteChatSession(sessionId: string): Promise<void> {
   if (!res.ok) throw new Error("Failed to delete session");
 }
 
-export type ChatStreamState = "searching" | "solving";
+export type ChatStreamState = "searching" | "solving" | "composing";
 
 /**
  * Streams a chat turn via SSE (real backend streaming, not a simulated typewriter).
@@ -229,7 +229,7 @@ export async function streamChatMessage(
       try { data = JSON.parse(dataLine.slice("data: ".length)); }
       catch { handlers.onError?.("The agent returned an invalid stream event."); return; }
 
-      if (event === "state" && (data === "searching" || data === "solving")) handlers.onState?.(data);
+      if (event === "state" && (data === "searching" || data === "solving" || data === "composing")) handlers.onState?.(data);
       else if (event === "token" && typeof data === "string") handlers.onToken?.(data);
       else if (event === "done") { completed = true; handlers.onDone?.(data as import("./types").ChatMessage); }
       else if (event === "error") { handlers.onError?.(typeof data === "string" ? data : "The agent failed."); return; }

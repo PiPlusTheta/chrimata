@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "iconsax-react-original": ["./node_modules/iconsax-react"]
     }
   },
   "include": [

@@ -12,14 +12,15 @@
     "@vectorize-io/hindsight-client": "^0.10.1",
     "framer-motion": "^13.4.4",
     "groq-sdk": "^1.6.0",
-    "lucide-react": "^1.48.0",
+    "iconsax-react": "^0.0.8",
     "next": "16.3.6",
     "openai": "^7.23.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
-    "thinking-orbs": "^0.3.2"
+    "thinking-orbs": "^0.3.2",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

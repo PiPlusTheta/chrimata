@@ -14,18 +14,18 @@ import {
   injectJulyEvidence
 } from "../../../api/client";
 import {
-  FileText,
-  RefreshCw,
-  Database,
+  DocumentText,
+  Refresh2,
+  Data,
   Clock,
   PlayCircle,
-  X,
+  CloseSquare,
   Link as LinkIcon,
-  Download,
-  ChevronDown,
-  ChevronUp,
-  Gavel,
-} from "lucide-react";
+  DocumentDownload,
+  ArrowDown2,
+  ArrowUp2,
+  Judge,
+} from "iconsax-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AnimatedBar } from "../../../components/TrajectoryChart";
 import { PageHeader, Panel, StatusBadge, Button, Input, Select, EmptyState } from "../../../components/dashboard/ui";
@@ -140,14 +140,14 @@ export default function DiligenceWorkspace() {
 
   return (
     <>
-<PageHeader eyebrow={<>Target Verification Profile {openIssueCount > 0 && <span className="text-terra-light">/ {openIssueCount} Open Issue{openIssueCount !== 1 ? "s" : ""}</span>}</>} title={<>{summary?.company_name} <StatusBadge>Synthetic Demo</StatusBadge></>} description={`${summary?.document_count} documents on record`} actions={<><Button onClick={handleExportReport}><Download className="h-3.5 w-3.5" /> Export Report</Button><Button onClick={async () => { await injectJulyEvidence(); loadData(); }}><PlayCircle className="h-3.5 w-3.5" /> Add July Evidence</Button><Button variant="danger" onClick={handleReset}><RefreshCw className="h-3.5 w-3.5" /> Reset Demo</Button><Link href={ROUTES.ask} className="dashboard-button dashboard-button-primary">Ask Chrimata</Link></>} />
+<PageHeader eyebrow={<>Target Verification Profile {openIssueCount > 0 && <span className="text-terra-light">/ {openIssueCount} Open Issue{openIssueCount !== 1 ? "s" : ""}</span>}</>} title={<>{summary?.company_name} <StatusBadge>Synthetic Demo</StatusBadge></>} description={`${summary?.document_count} documents on record`} actions={<><Button onClick={handleExportReport}><DocumentDownload className="h-3.5 w-3.5" /> Export Report</Button><Button onClick={async () => { await injectJulyEvidence(); loadData(); }}><PlayCircle className="h-3.5 w-3.5" /> Add July Evidence</Button><Button variant="danger" onClick={handleReset}><Refresh2 className="h-3.5 w-3.5" /> Reset Demo</Button><Link href={ROUTES.ask} className="dashboard-button dashboard-button-primary">Ask Chrimata</Link></>} />
 <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
           {/* LEFT */}
           <div className="xl:col-span-12 flex flex-col gap-8">
             {/* Metrics */}
             <section>
               <h2 className="font-mono text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-4 flex items-center gap-2">
-                <Database className="w-4 h-4" /> Calculated Metrics
+                <Data className="w-4 h-4" /> Calculated Metrics
               </h2>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {summary?.metrics?.map((m) => {
@@ -160,7 +160,7 @@ export default function DiligenceWorkspace() {
                       <div className="text-xs text-outline font-mono mb-1">{m.metric.replace(/_/g, ' ')}</div>
                       <div className="font-display text-2xl text-text-primary mb-2">{m.amount_paise ? formatPaise(m.amount_paise) : (m.months ? `${m.months} mo` : 'N/A')}</div>
                       <button onClick={() => setExpandedCalc(isOpen ? null : m.id)} className={`flex items-center gap-1 text-[9px] font-mono px-1.5 py-0.5 rounded border uppercase ${statusColor}`}>
-                        {m.status} {isOpen ? <ChevronUp className="w-3 h-3"/> : <ChevronDown className="w-3 h-3"/>}
+                        {m.status} {isOpen ? <ArrowUp2 className="w-3 h-3"/> : <ArrowDown2 className="w-3 h-3"/>}
                       </button>
                       <AnimatePresence>
                         {isOpen && (
@@ -205,7 +205,7 @@ export default function DiligenceWorkspace() {
             {/* Issues */}
             <section>
               <h2 className="font-mono text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-4 flex items-center gap-2">
-                <Gavel className="w-4 h-4 text-terra-light" /> Claim Veracity Investigation
+                <Judge className="w-4 h-4 text-terra-light" /> Claim Veracity Investigation
               </h2>
               <div className="flex flex-col gap-4">
                 {issues.map(iss => {
@@ -277,7 +277,7 @@ export default function DiligenceWorkspace() {
                 {docs.map(d => (
                   <button key={d.id} onClick={() => openSource(d.id)} className="text-left flex gap-3 items-center bg-aegean-dark/60 p-2.5 rounded-lg border border-outline-dim hover:border-outline-soft transition-colors">
                     <div className="w-8 h-8 rounded bg-accent-surface flex items-center justify-center flex-shrink-0 text-outline">
-                      <FileText className="w-4 h-4" />
+                      <DocumentText className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center mb-0.5">
@@ -307,7 +307,7 @@ export default function DiligenceWorkspace() {
                   {selectedLocator && <div className="text-xs text-bronze mt-1">Cited locator: {selectedLocator}</div>}
                 </div>
                 <button onClick={() => { setSelectedDoc(null); setSelectedLocator(null); }} className="text-outline hover:text-text-primary">
-                  <X className="w-5 h-5" />
+                  <CloseSquare className="w-5 h-5" />
                 </button>
               </div>
               <div className="p-4 overflow-y-auto text-sm text-on-surface-variant whitespace-pre-wrap font-mono">

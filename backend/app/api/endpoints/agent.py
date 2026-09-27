@@ -294,8 +294,16 @@ async def stream_chat_message(session_id: str, payload: ChatMessageCreate, db: S
 
         yield sse("state", "solving")
         full_text = ""
+        first_chunk = True
         try:
             for chunk in agent_service.ask_stream(question, evidence, memory, history):
+                if first_chunk:
+                    # Real transition, not decorative: "solving" covers the wait for
+                    # the model to start responding (post-recall reasoning); the
+                    # instant the first token actually arrives, it's genuinely
+                    # composing the answer, not just thinking about it.
+                    yield sse("state", "composing")
+                    first_chunk = False
                 full_text += chunk
                 yield sse("token", chunk)
         except Exception:

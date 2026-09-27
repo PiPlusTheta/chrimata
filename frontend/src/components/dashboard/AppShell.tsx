@@ -2,26 +2,36 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { Category, Hierarchy, ArchiveBook, MessageProgramming, HambergerMenu, StatusUp, Bank, ArrowRight2, ArrowLeft2, CloseCircle } from "iconsax-react";
 
 import { DASHBOARD_NAV } from "../../routes";
 import { ROUTES } from "../../routes";
-import { fetchSummary } from "../../api/client";
-import type { Summary } from "../../api/types";
+import { useDashboardStore } from "./store";
+
+// Map route icon strings to Iconsax components
+const ICON_MAP: Record<string, React.ReactNode> = {
+  space_dashboard: <Category size={18} variant="Linear" color="currentColor" />,
+  account_tree: <Hierarchy size={18} variant="Linear" color="currentColor" />,
+  terminal: <ArchiveBook size={18} variant="Linear" color="currentColor" />,
+  auto_awesome: <MessageProgramming size={18} variant="Linear" color="currentColor" />,
+};
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [backendOnline, setBackendOnline] = useState(false);
+  const { menuOpen, setMenuOpen, isCollapsed, setIsCollapsed, summary, backendOnline, init } = useDashboardStore();
+
   useEffect(() => {
-    void fetchSummary().then((next) => { setSummary(next); setBackendOnline(true); }).catch(() => setBackendOnline(false));
-  }, []);
+    void init();
+  }, [init]);
 
   return (
-    <div className="dashboard-shell">
+    <div className={`dashboard-shell ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
       {menuOpen && <button className="dashboard-scrim" aria-label="Close navigation" onClick={() => setMenuOpen(false)} />}
       <aside className={`dashboard-sidebar ${menuOpen ? "is-open" : ""}`} aria-label="Dashboard navigation">
+        <button onClick={() => setIsCollapsed(!isCollapsed)} className="hidden md:flex absolute -right-3 top-4 h-6 w-6 items-center justify-center rounded-full border border-outline-dim bg-aegean-surface text-outline hover:text-text-primary hover:bg-bronze hover:text-aegean-dark hover:border-bronze transition-colors z-50">
+          {isCollapsed ? <ArrowRight2 size={14} color="currentColor" /> : <ArrowLeft2 size={14} color="currentColor" />}
+        </button>
         <div>
           <div className="dashboard-sidebar-brand">
             <div className="flex items-center gap-2.5">
@@ -44,25 +54,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {DASHBOARD_NAV.map((item) => {
               const active = pathname === item.href;
               return <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)} aria-current={active ? "page" : undefined} className={`dashboard-nav-link ${active ? "is-active" : ""}`}>
-                <span className="flex items-center gap-2.5"><span className="material-symbols-outlined text-[18px]">{item.icon}</span>{item.label}</span>
-                {item.href === ROUTES.queue && summary && <span className="font-mono text-[10px] text-outline">{summary.open_issue_count}</span>}
+                <span className="flex items-center gap-2.5">
+                  <span className="flex items-center justify-center w-[18px] h-[18px]">{ICON_MAP[item.icon] || <StatusUp size={18} variant="Linear" color="currentColor" />}</span>
+                  <span className="nav-label">{item.label}</span>
+                </span>
+                {item.href === ROUTES.queue && summary && <span className="nav-badge font-mono text-[10px] text-outline">{summary.open_issue_count}</span>}
               </Link>;
             })}
           </nav>
         </div>
-        <div className="border-t border-hairline bg-card-bg p-5">
-          <div className="flex items-center justify-between"><div><div className="font-mono text-[9px] uppercase tracking-wider text-outline">Data Service</div><div className={`font-mono text-[11px] font-medium ${backendOnline ? "text-tertiary" : "text-terra-light"}`}>{backendOnline ? "Connected" : "Unavailable"}</div></div><span className="flex h-7 w-7 items-center justify-center rounded-lg border border-accent-border bg-accent-surface text-outline"><span className="material-symbols-outlined text-[15px]">dns</span></span></div>
+        <div className="border-t border-hairline bg-card-bg p-5 sidebar-footer">
+          <div className="flex items-center justify-between"><div><div className="font-mono text-[9px] uppercase tracking-wider text-outline">Data Service</div><div className={`font-mono text-[11px] font-medium ${backendOnline ? "text-tertiary" : "text-terra-light"}`}>{backendOnline ? "Connected" : "Unavailable"}</div></div><span className="flex h-7 w-7 items-center justify-center rounded-lg border border-accent-border bg-accent-surface text-outline"><StatusUp size={15} variant="Linear" color="currentColor" /></span></div>
         </div>
       </aside>
       <div className="dashboard-frame">
         <header className="dashboard-topbar">
           <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-            <button className="dashboard-menu-button" type="button" onClick={() => setMenuOpen(true)} aria-label="Open navigation" aria-expanded={menuOpen}><span className="material-symbols-outlined">menu</span></button>
+            <button className="dashboard-menu-button" type="button" onClick={() => setMenuOpen(true)} aria-label="Open navigation" aria-expanded={menuOpen}><HambergerMenu size={24} variant="Linear" color="currentColor" /></button>
             <div className="flex min-w-0 items-center gap-3"><img src="/logo.png" alt="Logo" className="h-4 w-auto object-contain" /><span className="font-display text-lg font-light tracking-tight text-on-surface">Chrimata</span><span className="hidden h-4 w-px bg-accent-border sm:block" /><span className="hidden truncate font-headline text-lg font-light tracking-tight text-on-surface sm:inline">Institutional Terminal</span></div>
             <div className="hidden items-center gap-2 rounded-full border border-hairline bg-accent-surface/70 px-2.5 py-1 md:flex"><span className={`h-1.5 w-1.5 rounded-full ${backendOnline ? "bg-tertiary" : "bg-terra-light"}`} /><span className="font-mono text-[10px] font-medium tracking-wide text-on-surface-variant">{backendOnline ? "DATA SERVICE CONNECTED" : "DATA SERVICE UNAVAILABLE"}</span></div>
           </div>
           <div className="flex items-center gap-4 lg:gap-6">
-            <div className="flex items-center gap-3"><div className="hidden text-right sm:block"><div className="text-xs font-semibold leading-snug text-on-surface">{summary?.company_name ?? "Chrimata"}</div><div className="font-mono text-[10px] text-on-surface-variant">Diligence Workspace</div></div><span className="flex h-8 w-8 items-center justify-center rounded-full border border-accent-border bg-accent-surface text-secondary"><span className="material-symbols-outlined text-[17px]">account_balance</span></span></div>
+            <div className="flex items-center gap-3"><div className="hidden text-right sm:block"><div className="text-xs font-semibold leading-snug text-on-surface">{summary?.company_name ?? "Chrimata"}</div><div className="font-mono text-[10px] text-on-surface-variant">Diligence Workspace</div></div><span className="flex h-8 w-8 items-center justify-center rounded-full border border-accent-border bg-accent-surface text-secondary"><Bank size={17} variant="Linear" color="currentColor" /></span></div>
           </div>
         </header>
         <main id="main-content" className="dashboard-content"><nav aria-label="Breadcrumb" className="dashboard-breadcrumb"><span>Dashboard</span><span aria-hidden="true">/</span><span aria-current="page">{DASHBOARD_NAV.find(item => item.href === pathname)?.label}</span></nav>{children}</main>
