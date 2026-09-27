@@ -25,15 +25,15 @@ interface ChatState {
   loading: boolean;
   abortController: AbortController | null;
 
-  init: () => Promise<void>;
-  refreshSessions: () => Promise<void>;
+  init: (dealId: string) => Promise<void>;
+  refreshSessions: (dealId: string) => Promise<void>;
   selectSession: (id: string) => Promise<void>;
-  newChat: () => Promise<string | undefined>;
-  deleteChat: (id: string) => Promise<void>;
+  newChat: (dealId: string) => Promise<string | undefined>;
+  deleteChat: (id: string, dealId: string) => Promise<void>;
   renameChat: (id: string, title: string) => Promise<void>;
-  send: (text: string, regenerate?: boolean) => Promise<void>;
+  send: (text: string, dealId: string, regenerate?: boolean) => Promise<void>;
   stop: () => void;
-  regenerate: () => void;
+  regenerate: (dealId: string) => void;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -48,13 +48,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
   loading: true,
   abortController: null,
 
-  init: async () => {
+  init: async (dealId: string) => {
     try {
       set({ loading: true, error: null });
       const [sum, iss, sessionList] = await Promise.all([
-        fetchSummary(),
-        fetchIssues(),
-        listChatSessions(),
+        fetchSummary(dealId),
+        fetchIssues(dealId),
+        listChatSessions(dealId),
       ]);
       set({
         summary: sum,
@@ -73,9 +73,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  refreshSessions: async () => {
+  refreshSessions: async (dealId: string) => {
     try {
-      const sessions = await listChatSessions();
+      const sessions = await listChatSessions(dealId);
       set({ sessions });
     } catch {}
   },
@@ -92,11 +92,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  newChat: async () => {
+  newChat: async (dealId: string) => {
     const state = get();
     if (state.phase !== "idle") return;
     try {
-      const s = await createChatSession();
+      const s = await createChatSession(dealId);
       set({
         sessions: [s, ...state.sessions],
         activeId: s.id,
@@ -109,7 +109,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  deleteChat: async (id: string) => {
+  deleteChat: async (id: string, dealId: string) => {
     try {
       await deleteChatSession(id);
       const state = get();
@@ -140,7 +140,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  send: async (text: string, regenerate = false) => {
+  send: async (text: string, dealId: string, regenerate = false) => {
     const q = text.trim();
     const state = get();
     if (!q || state.phase !== "idle") return;
@@ -148,7 +148,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     let sessionId = state.activeId;
     if (!sessionId) {
       try {
-        const created = await createChatSession();
+        const created = await createChatSession(dealId);
         sessionId = created.id;
         set({
           sessions: [created, ...state.sessions],
@@ -193,7 +193,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           streamingText: "",
           phase: "idle",
         }));
-        get().refreshSessions();
+        get().refreshSessions(dealId);
       },
       onError: (err) => {
         set({ error: err, streamingText: "", phase: "idle" });
@@ -215,12 +215,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  regenerate: () => {
+  regenerate: (dealId: string) => {
     const state = get();
     if (state.phase !== "idle") return;
     const latestUser = [...state.messages].reverse().find((m) => m.role === "user");
     if (latestUser) {
-      get().send(latestUser.text, true);
+      get().send(latestUser.text, dealId, true);
     }
   },
 }));

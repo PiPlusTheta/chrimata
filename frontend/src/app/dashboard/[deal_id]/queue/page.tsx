@@ -18,7 +18,7 @@ function formatPaise(paise?: number | null) {
 
 export default function DashboardQueue() {
   const params = useParams<{ deal_id?: string }>();
-  const dealId = params?.deal_id || "demo";
+  const dealId = params?.deal_id || "northstar";
   const { summary } = useDashboardStore();
   const [issues, setIssues] = useState<Issue[]>([]);
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
@@ -29,7 +29,7 @@ export default function DashboardQueue() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [nextIssues, nextDocuments] = await Promise.all([fetchIssues(), fetchDocuments()]);
+      const [nextIssues, nextDocuments] = await Promise.all([fetchIssues(dealId), fetchDocuments(dealId)]);
       setIssues(nextIssues);
       setDocuments(nextDocuments);
       setError(null);
@@ -38,7 +38,7 @@ export default function DashboardQueue() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dealId]);
   useEffect(() => { void Promise.resolve().then(load); }, [load]);
 
   const filteredDocuments = useMemo(() => {

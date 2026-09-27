@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useParams } from "next/navigation";
-import { useEffect } from "react";
-import { Category, Hierarchy, ArchiveBook, MessageProgramming, HambergerMenu, StatusUp, Bank, ArrowRight2, ArrowLeft2, CloseCircle } from "iconsax-react";
+import { usePathname, useParams, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { Category, Hierarchy, ArchiveBook, MessageProgramming, HambergerMenu, StatusUp, Bank, ArrowRight2, ArrowLeft2, CloseCircle, ArrowDown2 } from "iconsax-react";
 
 import { getDashboardNav, ROUTES } from "../../routes";
 import { useDashboardStore } from "./store";
@@ -18,14 +18,37 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const params = useParams<{ deal_id?: string }>();
-  const dealId = params?.deal_id || "demo";
+  const dealId = params?.deal_id || "northstar";
   const nav = getDashboardNav(dealId);
-  const { menuOpen, setMenuOpen, isCollapsed, setIsCollapsed, summary, backendOnline, init } = useDashboardStore();
+  const { menuOpen, setMenuOpen, isCollapsed, setIsCollapsed, summary, backendOnline, init, deals, loadDeals } = useDashboardStore();
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const switcherRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    void init();
-  }, [init]);
+    void init(dealId);
+  }, [dealId, init]);
+
+  useEffect(() => {
+    void loadDeals();
+  }, [loadDeals]);
+
+  useEffect(() => {
+    if (!switcherOpen) return;
+    function onClickOutside(event: MouseEvent) {
+      if (switcherRef.current && !switcherRef.current.contains(event.target as Node)) setSwitcherOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [switcherOpen]);
+
+  function switchDeal(nextDealId: string) {
+    setSwitcherOpen(false);
+    if (nextDealId === dealId) return;
+    const currentTab = nav.find((item) => item.href === pathname)?.label ? pathname.split("/").pop() : "queue";
+    router.push(`/dashboard/${nextDealId}/${currentTab}`);
+  }
 
   return (
     <div className={`dashboard-shell ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
@@ -43,13 +66,45 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="rounded border border-accent-border bg-accent-surface px-2 py-0.5 font-mono text-[10px] text-on-surface-variant">{summary ? summary.run_id.slice(0, 6) : "—"}</span>
           </div>
           <div className="px-5 py-4">
-            <div className="rounded-lg border border-hairline bg-accent-surface/70 p-3">
-              <div className="flex items-center justify-between gap-2 font-mono text-[9px] uppercase tracking-wider">
-                <span className="text-outline">Current Run</span>
-                <span className={`flex items-center gap-1 font-semibold ${backendOnline ? "text-tertiary" : "text-terra-light"}`}><span className={`h-1 w-1 rounded-full ${backendOnline ? "bg-tertiary" : "bg-terra-light"}`} /> {backendOnline ? "Online" : "Unavailable"}</span>
-              </div>
-              <div className="mt-1 truncate font-mono text-[11px] text-on-surface">{summary?.company_name ?? "No deal loaded"}</div>
-              <div className="mt-0.5 font-mono text-[10px] text-on-surface-variant/80">{summary ? `${summary.document_count} documents · ${summary.open_issue_count} open issues` : "Connect to view deal status"}</div>
+            <div className="relative" ref={switcherRef}>
+              <button
+                type="button"
+                onClick={() => setSwitcherOpen((open) => !open)}
+                aria-expanded={switcherOpen}
+                aria-haspopup="listbox"
+                className="w-full rounded-lg border border-hairline bg-accent-surface/70 p-3 text-left transition-colors hover:border-bronze/60"
+              >
+                <div className="flex items-center justify-between gap-2 font-mono text-[9px] uppercase tracking-wider">
+                  <span className="text-outline">Active Mandate</span>
+                  <span className={`flex items-center gap-1 font-semibold ${backendOnline ? "text-tertiary" : "text-terra-light"}`}><span className={`h-1 w-1 rounded-full ${backendOnline ? "bg-tertiary" : "bg-terra-light"}`} /> {backendOnline ? "Online" : "Unavailable"}</span>
+                </div>
+                <div className="mt-1 flex items-center justify-between gap-2">
+                  <span className="truncate font-mono text-[11px] text-on-surface">{summary?.company_name ?? "No deal loaded"}</span>
+                  <ArrowDown2 size={12} color="currentColor" className={`shrink-0 text-outline transition-transform ${switcherOpen ? "rotate-180" : ""}`} />
+                </div>
+                <div className="mt-0.5 font-mono text-[10px] text-on-surface-variant/80">{summary ? `${summary.document_count} documents · ${summary.open_issue_count} open issues` : "Connect to view deal status"}</div>
+              </button>
+              {switcherOpen && (
+                <div role="listbox" className="absolute left-0 right-0 top-full z-50 mt-1 max-h-80 overflow-y-auto rounded-lg border border-hairline bg-aegean-surface shadow-lg">
+                  {deals.length === 0 && <div className="p-3 font-mono text-[10px] text-outline">No deals available</div>}
+                  {deals.map((deal) => (
+                    <button
+                      key={deal.id}
+                      type="button"
+                      role="option"
+                      aria-selected={deal.id === dealId}
+                      onClick={() => switchDeal(deal.id)}
+                      className={`flex w-full items-center justify-between gap-2 border-b border-hairline/60 px-3 py-2 text-left last:border-0 hover:bg-accent-surface ${deal.id === dealId ? "bg-accent-surface" : ""}`}
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate font-mono text-[11px] text-on-surface">{deal.name}</span>
+                        <span className="block truncate font-mono text-[9px] text-on-surface-variant/80">{deal.industry ?? "—"} · {deal.stage ?? "—"}</span>
+                      </span>
+                      {deal.open_issue_count > 0 && <span className="shrink-0 rounded-full border border-accent-border bg-accent-surface px-1.5 py-0.5 font-mono text-[9px] text-terra-light">{deal.open_issue_count}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <nav className="flex flex-col gap-1 px-3" aria-label="Primary">

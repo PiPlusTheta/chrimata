@@ -1,17 +1,19 @@
 import { create } from "zustand";
-import { fetchSummary } from "../../api/client";
-import type { Summary } from "../../api/types";
+import { fetchDeals, fetchSummary } from "../../api/client";
+import type { DealSummary, Summary } from "../../api/types";
 
 interface DashboardState {
   menuOpen: boolean;
   isCollapsed: boolean;
   summary: Summary | null;
   backendOnline: boolean;
-  
+  deals: DealSummary[];
+
   // Actions
   setMenuOpen: (open: boolean) => void;
   setIsCollapsed: (collapsed: boolean) => void;
-  init: () => Promise<void>;
+  init: (dealId: string) => Promise<void>;
+  loadDeals: () => Promise<void>;
 }
 
 export const useDashboardStore = create<DashboardState>((set) => ({
@@ -19,16 +21,26 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   isCollapsed: false,
   summary: null,
   backendOnline: false,
+  deals: [],
 
   setMenuOpen: (open) => set({ menuOpen: open }),
   setIsCollapsed: (collapsed) => set({ isCollapsed: collapsed }),
 
-  init: async () => {
+  init: async (dealId: string) => {
     try {
-      const summary = await fetchSummary();
+      const summary = await fetchSummary(dealId);
       set({ summary, backendOnline: true });
     } catch (e) {
       set({ backendOnline: false });
+    }
+  },
+
+  loadDeals: async () => {
+    try {
+      const deals = await fetchDeals();
+      set({ deals });
+    } catch (e) {
+      // Non-fatal: the switcher just won't show other companies this load.
     }
   },
 }));

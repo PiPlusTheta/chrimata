@@ -2,19 +2,19 @@ import uuid
 import pathlib
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
-from app.models.domain import Document, Claim, Issue, Review, DemoRun
+from app.models.domain import Document, Claim, Issue, Review, Deal, ChatSession, ChatMessage
 
 DATA_DIR = pathlib.Path(__file__).resolve().parents[3] / "data" / "demo"
 
 
 def _read(filename: str) -> str:
-    return (DATA_DIR / filename).read_text(encoding="utf-8")
+    path = DATA_DIR / filename
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    return f"Synthetic content for {filename}"
 
 
 def _now() -> str:
-    """Fresh, strictly-increasing timestamp per call — used as a secondary sort key
-    so claims on the same metric with a tied as_of_date still have a defined order
-    (see _maybe_open_issue_for_new_claim in evidence.py)."""
     return datetime.now(timezone.utc).isoformat()
 
 
@@ -26,10 +26,6 @@ def event(kind: str, description: str, source_ids: list, at: str = "2026-04-01T0
     return {"id": f"evt_{uuid.uuid4().hex[:8]}", "at": at, "kind": kind,
             "description": description, "source_ids": source_ids}
 
-
-# Chronology rule: July-dated evidence must not be visible at the initial demo stage.
-# Split into what's seeded at reset ("initial") vs. what POST /deals/demo/introduce-july-evidence
-# reveals live during the demo ("july"). See introduce_july_evidence() below.
 
 INITIAL_DOCS = [
     ("doc-deck-mar", "March Pitch Deck", "deck", "march_pitch_deck.md", "2026-03-15"),
@@ -52,111 +48,236 @@ JULY_DOCS = [
     ("doc-founder-slack-aug", "August Founder Slack", "analyst_note", "august_founder_slack.md", "2026-08-10"),
 ]
 
+# Company registry — one shared baseline template (below), each with its own scale
+# and a `has_issues` flag for whether the baseline ARR-vs-ledger discrepancy exists.
+# `brutal` deals additionally get the hand-designed edge-case scenarios appended
+# by _seed_brutal_cases(). This is deliberately a small number of carefully designed
+# companies, not a large random set — each exists to exercise something specific.
+DEALS = [
+    {"id": "northstar", "name": "Northstar Ops", "industry": "Enterprise B2B SaaS", "stage": "Series A",
+     "arr_paise": 2_400_000_000, "active_mrr_paise": 12_00_000_00, "has_issues": True, "brutal": False},
+    {"id": "cybernetic", "name": "Cybernetic Systems", "industry": "Industrial Robotics", "stage": "Series B",
+     "arr_paise": 1_440_000_000, "active_mrr_paise": 12_00_000_00, "has_issues": False, "brutal": False},
+    {"id": "acme", "name": "Acme Corp", "industry": "Consumer Hardware", "stage": "Pre-Seed",
+     "arr_paise": 5_00_00_00, "active_mrr_paise": 4_100_00, "has_issues": False, "brutal": False},
+    {"id": "globex", "name": "Globex Corporation", "industry": "Fintech", "stage": "Series C",
+     "arr_paise": 8_000_000_000, "active_mrr_paise": 50_000_000_00, "has_issues": True, "brutal": True},
+    {"id": "initech", "name": "Initech", "industry": "Enterprise Software", "stage": "Series A",
+     "arr_paise": 1_000_000_00, "active_mrr_paise": 8_00_000_00, "has_issues": False, "brutal": False},
+    {"id": "soyuz", "name": "Soyuz Aerospace", "industry": "Aerospace", "stage": "Series B",
+     "arr_paise": 3_200_000_000, "active_mrr_paise": 22_00_000_00, "has_issues": True, "brutal": False},
+]
 
-def reset_db(db: Session) -> str:
-    """Wipe and reseed the demo dataset. Returns the new run_id."""
-    db.query(Review).delete()
-    db.query(Issue).delete()
-    db.query(Claim).delete()
-    db.query(Document).delete()
-    db.query(DemoRun).delete()
-    db.commit()
 
-    for doc_id, title, dtype, filename, date in INITIAL_DOCS:
+def seed_deal(db: Session, deal_id: str, arr_paise: int, active_mrr_paise: int, has_issues: bool = True) -> str:
+    run_id = f"run_{uuid.uuid4().hex[:12]}"
+
+    for doc_base_id, title, dtype, filename, date in INITIAL_DOCS:
+        doc_id = f"{deal_id}-{doc_base_id}"
         db.add(Document(
-            id=doc_id, deal_id="demo", title=title, type=dtype, version="1.0",
+            id=doc_id, deal_id=deal_id, title=title, type=dtype, version="1.0",
             document_date=date, ingested_at="2026-09-27T00:00:00Z",
             content=_read(filename), source_url=f"data/demo/{filename}", synthetic=True,
         ))
     db.commit()
 
     claims = [
-        Claim(id="claim-arr-mar", metric="arr", original_text="Our current ARR is ₹2.4 crore.",
-              stated_amount_paise=2_400_000_000, as_of_date="2026-03-15",
+        Claim(id=f"{deal_id}-claim-arr-mar", deal_id=deal_id, metric="arr", original_text=f"Our current ARR is ₹{arr_paise/10000000:,.1f} crore.",
+              stated_amount_paise=arr_paise, as_of_date="2026-03-15",
               definition="Annual Recurring Revenue as stated in the March pitch deck", status="claimed",
-              sources=[sref("doc-deck-mar", "paragraph 1", "Our current ARR is ₹2.4 crore.")], created_at=_now()),
-        Claim(id="claim-active-mrr-apr", metric="active_mrr", original_text="Active Monthly Recurring Revenue: ₹12 lakh.",
-              stated_amount_paise=12_00_000_00, as_of_date="2026-04-01",
+              sources=[sref(f"{deal_id}-doc-deck-mar", "paragraph 1", f"Our current ARR is ₹{arr_paise/10000000:,.1f} crore.")], created_at=_now()),
+        Claim(id=f"{deal_id}-claim-active-mrr-apr", deal_id=deal_id, metric="active_mrr", original_text=f"Active Monthly Recurring Revenue: ₹{active_mrr_paise/100000:,.1f} lakh.",
+              stated_amount_paise=active_mrr_paise, as_of_date="2026-04-01",
               definition="MRR from customers currently active and billing", status="claimed",
-              sources=[sref("doc-ledger-apr", "Active Monthly Recurring Revenue line")], created_at=_now()),
-        Claim(id="claim-contracted-mrr-apr", metric="contracted_mrr", original_text="Signed contracts not yet active: ₹5 lakh.",
+              sources=[sref(f"{deal_id}-doc-ledger-apr", "Active Monthly Recurring Revenue line")], created_at=_now()),
+        Claim(id=f"{deal_id}-claim-contracted-mrr-apr", deal_id=deal_id, metric="contracted_mrr", original_text="Signed contracts not yet active: ₹5 lakh.",
               stated_amount_paise=5_00_000_00, as_of_date="2026-04-01",
               definition="Signed but not-yet-active monthly revenue — excluded from live ARR", status="claimed",
-              sources=[sref("doc-ledger-apr", "Signed contracts not yet active line")], created_at=_now()),
-        Claim(id="claim-pipeline-mrr-apr", metric="pipeline_mrr", original_text="Unsigned pipeline: ₹3 lakh.",
+              sources=[sref(f"{deal_id}-doc-ledger-apr", "Signed contracts not yet active line")], created_at=_now()),
+        Claim(id=f"{deal_id}-claim-pipeline-mrr-apr", deal_id=deal_id, metric="pipeline_mrr", original_text="Unsigned pipeline: ₹3 lakh.",
               stated_amount_paise=3_00_000_00, as_of_date="2026-04-01",
               definition="Unsigned sales pipeline monthly value — excluded from live ARR", status="claimed",
-              sources=[sref("doc-ledger-apr", "Unsigned pipeline line")], created_at=_now()),
-        Claim(id="claim-cash-q1", metric="cash", original_text="Current Cash: ₹72 lakh.",
+              sources=[sref(f"{deal_id}-doc-ledger-apr", "Unsigned pipeline line")], created_at=_now()),
+        Claim(id=f"{deal_id}-claim-cash-q1", deal_id=deal_id, metric="cash", original_text="Current Cash: ₹72 lakh.",
               stated_amount_paise=72_00_000_00, as_of_date="2026-04-01",
               definition="Cash on hand per the Q1 cash record", status="claimed",
-              sources=[sref("doc-cash-q1", "Current Cash line")], created_at=_now()),
-        Claim(id="claim-burn-q1", metric="burn", original_text="Monthly Net Burn: ₹18 lakh.",
+              sources=[sref(f"{deal_id}-doc-cash-q1", "Current Cash line")], created_at=_now()),
+        Claim(id=f"{deal_id}-claim-burn-q1", deal_id=deal_id, metric="burn", original_text="Monthly Net Burn: ₹18 lakh.",
               stated_amount_paise=18_00_000_00, as_of_date="2026-04-01",
               definition="Net cash burn per month per the Q1 cash record", status="claimed",
-              sources=[sref("doc-cash-q1", "Monthly Net Burn line")], created_at=_now()),
-        Claim(id="claim-financing-proposed-jun", metric="proposed_financing", original_text="Amount: ₹1.08 Crore. Not yet signed.",
+              sources=[sref(f"{deal_id}-doc-cash-q1", "Monthly Net Burn line")], created_at=_now()),
+        Claim(id=f"{deal_id}-claim-financing-proposed-jun", deal_id=deal_id, metric="proposed_financing", original_text="Amount: ₹1.08 Crore. Not yet signed.",
               stated_amount_paise=1_08_00_000_00, as_of_date="2026-06-10",
               definition="Series A extension amount in the draft term sheet — not yet signed", status="claimed",
-              sources=[sref("doc-term-sheet-jun", "Amount line")], created_at=_now()),
-        Claim(id="claim-runway-jul", metric="runway", original_text="Cash runway is tight (approx 3-4 months without the extension).",
+              sources=[sref(f"{deal_id}-doc-term-sheet-jun", "Amount line")], created_at=_now()),
+        Claim(id=f"{deal_id}-claim-runway-jul", deal_id=deal_id, metric="runway", original_text="Cash runway is tight (approx 3-4 months without the extension).",
               stated_months="3-4", as_of_date="2026-06-30",
               definition="Board's own qualitative runway estimate, pending the financing extension", status="claimed",
-              sources=[sref("doc-board-minutes-jun", "Agenda item 1")], created_at=_now()),
+              sources=[sref(f"{deal_id}-doc-board-minutes-jun", "Agenda item 1")], created_at=_now()),
     ]
     db.add_all(claims)
     db.commit()
 
-    issues = [
-        Issue(id="issue-arr-apr", claim_id="claim-arr-mar", status="open",
-              question="March deck states ₹2.4 crore ARR, but the April ledger shows only ₹12 lakh active MRR (₹1.44 crore annualised). Is there a discrepancy?",
-              evidence_for=[sref("doc-deck-mar", "paragraph 1")],
-              evidence_against=[sref("doc-ledger-apr", "Active Monthly Recurring Revenue line")],
-              history=[event("opened", "Issue opened: March ARR claim exceeds April active-MRR-derived ARR.", ["doc-deck-mar", "doc-ledger-apr"])],
-              suggested_request="Ask the founder whether the March ARR figure includes non-active revenue."),
-    ]
-    db.add_all(issues)
-    db.commit()
+    if has_issues:
+        issues = [
+            Issue(id=f"{deal_id}-issue-arr-apr", deal_id=deal_id, claim_id=f"{deal_id}-claim-arr-mar", status="open",
+                  question=f"March deck states ₹{arr_paise/10000000:,.1f} crore ARR, but the April ledger shows only ₹{active_mrr_paise/100000:,.1f} lakh active MRR. Is there a discrepancy?",
+                  evidence_for=[sref(f"{deal_id}-doc-deck-mar", "paragraph 1")],
+                  evidence_against=[sref(f"{deal_id}-doc-ledger-apr", "Active Monthly Recurring Revenue line")],
+                  history=[event("opened", "Issue opened: March ARR claim exceeds April active-MRR-derived ARR.", [f"{deal_id}-doc-deck-mar", f"{deal_id}-doc-ledger-apr"])],
+                  suggested_request="Ask the founder whether the March ARR figure includes non-active revenue."),
+        ]
+        db.add_all(issues)
+        db.commit()
 
-    run_id = f"run_{uuid.uuid4().hex[:12]}"
-    db.add(DemoRun(id="demo", run_id=run_id))
-    db.commit()
     return run_id
 
 
-def introduce_july_evidence(db: Session) -> dict:
-    """Reveals the July documents + claims + opens issue-mrr-jul, live during the demo.
-    Idempotent: calling it twice is a no-op the second time (no duplicate claims/issues).
-    Deliberately does NOT touch issue-arr-apr — the April resolution must stay intact."""
-    if db.query(Document).filter(Document.id == "doc-update-jul").first():
+def _seed_brutal_cases(db: Session, deal_id: str):
+    """Hand-designed edge cases layered onto a deal that already has the baseline
+    claims/issues from seed_deal(). Each case exists to exercise one specific thing
+    the deterministic evidence engine (or the agent reasoning over it) must get right."""
+
+    # Scenario: duplicate-looking-but-legitimate claims — same metric, same amount,
+    # different source documents and dates. Must NOT be silently merged or treated
+    # as a data-entry duplicate; they're two independent assertions that happen to
+    # agree.
+    db.add_all([
+        Claim(id=f"{deal_id}-claim-pipeline-mar", deal_id=deal_id, metric="pipeline_mrr",
+              original_text="Unsigned pipeline: ₹9,00,000/month.", stated_amount_paise=9_00_000_00,
+              as_of_date="2026-03-01", definition="Unsigned sales pipeline as of March board deck", status="claimed",
+              sources=[sref(f"{deal_id}-doc-deck-mar", "appendix, pipeline table")], created_at=_now()),
+        Claim(id=f"{deal_id}-claim-pipeline-may", deal_id=deal_id, metric="pipeline_mrr",
+              original_text="Unsigned pipeline: ₹9,00,000/month (unchanged).", stated_amount_paise=9_00_000_00,
+              as_of_date="2026-05-01", definition="Unsigned sales pipeline as of May board update", status="claimed",
+              sources=[sref(f"{deal_id}-doc-board-minutes-jun", "pipeline recap")], created_at=_now()),
+    ])
+
+    # Scenario: boundary amounts — ₹1 (minimum meaningful paise-denominated claim)
+    # and a very large figure that exercises BigInteger without overflowing (a
+    # earlier real bug in this codebase was a claim silently overflowing 32-bit
+    # Integer — this guards against that class of regression at the top end too).
+    db.add_all([
+        Claim(id=f"{deal_id}-claim-boundary-min", deal_id=deal_id, metric="misc_fee",
+              original_text="Bank account maintenance fee: ₹1.", stated_amount_paise=1,
+              as_of_date="2026-04-01", definition="Smallest recorded line item, for boundary testing", status="claimed",
+              sources=[sref(f"{deal_id}-doc-bank-statement-may", "fee line")], created_at=_now()),
+        Claim(id=f"{deal_id}-claim-boundary-max", deal_id=deal_id, metric="total_addressable_market",
+              original_text="Deck-asserted TAM: ₹9,99,900 crore.", stated_amount_paise=9_999_00_000_000_00,
+              as_of_date="2026-03-15", definition="Founder's total addressable market claim — a narrative figure, not a financial metric to be trusted at face value",
+              status="claimed", sources=[sref(f"{deal_id}-doc-deck-mar", "market sizing slide")], created_at=_now()),
+    ])
+
+    # Scenario: claim with no definition and no quote (both nullable fields
+    # genuinely absent, not empty strings) — exercises the nullable-field path.
+    db.add(Claim(id=f"{deal_id}-claim-no-metadata", deal_id=deal_id, metric="other_income",
+                 original_text="Misc other income, ₹2,10,000, unclassified in export.",
+                 stated_amount_paise=2_10_000_00, as_of_date="2026-04-30", definition=None, status="claimed",
+                 sources=[sref(f"{deal_id}-doc-stripe-export-mar", "row 47", None)], created_at=_now()))
+
+    # Scenario: adversarial / messy original_text — mixed case, asterisks,
+    # abbreviations, an em-dash, a currency symbol embedded mid-word — the kind of
+    # text real ingestion produces and that must not break rendering or citation.
+    db.add(Claim(id=f"{deal_id}-claim-messy-text", deal_id=deal_id, metric="adj_ebitda",
+                 original_text="Adj. EBITDA (Mgmt-adj*, unaudited) — Q1'26: (₹4,50,000) — *excludes one-time legal costs",
+                 stated_amount_paise=-4_50_000_00, as_of_date="2026-03-31",
+                 definition="Management-adjusted EBITDA, a non-GAAP figure the company itself flags as unaudited",
+                 status="claimed", sources=[sref(f"{deal_id}-doc-board-minutes-jun", "financials appendix")], created_at=_now()))
+    db.commit()
+
+    # Scenario: an issue that gets disputed after being explained, i.e. reopened —
+    # exercises the full open -> explained -> reopened lifecycle and confirms
+    # history stays append-only (3 events) rather than being overwritten.
+    reopened_issue = Issue(
+        id=f"{deal_id}-issue-pipeline-consistency", deal_id=deal_id, claim_id=f"{deal_id}-claim-pipeline-may",
+        status="open",
+        question="Pipeline was reported as unchanged at ₹9,00,000/month from March to May — is that plausible for a growth-stage company, or was the figure just copy-pasted forward?",
+        evidence_for=[sref(f"{deal_id}-doc-board-minutes-jun", "pipeline recap")],
+        evidence_against=[sref(f"{deal_id}-doc-deck-mar", "appendix, pipeline table")],
+        history=[event("opened", "Issue opened: identical pipeline figure reported two months apart.",
+                        [f"{deal_id}-doc-deck-mar", f"{deal_id}-doc-board-minutes-jun"], at="2026-05-02T00:00:00Z")],
+        suggested_request="Request the underlying CRM pipeline export to confirm the figure was recalculated, not carried forward.",
+    )
+    db.add(reopened_issue)
+    db.commit()
+
+    review1 = Review(id=f"{deal_id}-review-pipeline-1", issue_id=reopened_issue.id, decision="accept_explanation",
+                      explanation="Founder confirmed on call that pipeline composition changed (some deals closed, new ones added) but total happened to net to the same figure.",
+                      reviewed_at="2026-05-10T00:00:00Z", reviewer="analyst", memory_status="retained")
+    db.add(review1)
+    reopened_issue.status = "explained"
+    reopened_issue.history = list(reopened_issue.history) + [
+        event("reviewed", f"Review {review1.id} recorded decision 'accept_explanation'.", [], at="2026-05-10T00:00:00Z")
+    ]
+    db.commit()
+
+    review2 = Review(id=f"{deal_id}-review-pipeline-2", issue_id=reopened_issue.id, decision="dispute",
+                      explanation="CRM export requested but not provided after three follow-ups; the 'netted out coincidentally' explanation cannot be verified and the figure is now flagged again pending evidence.",
+                      reviewed_at="2026-06-15T00:00:00Z", reviewer="analyst", memory_status="pending")
+    db.add(review2)
+    reopened_issue.status = "reopened"
+    reopened_issue.history = list(reopened_issue.history) + [
+        event("reopened", f"Review {review2.id} recorded decision 'dispute'.", [], at="2026-06-15T00:00:00Z")
+    ]
+    db.commit()
+
+
+def reset_db(db: Session) -> str:
+    """Wipe and reseed every deal. Returns Northstar's run_id (the primary/default
+    deal most existing tests and the golden-path demo script are anchored to)."""
+    db.query(ChatMessage).delete()
+    db.query(ChatSession).delete()
+    db.query(Review).delete()
+    db.query(Issue).delete()
+    db.query(Claim).delete()
+    db.query(Document).delete()
+    db.query(Deal).delete()
+    db.commit()
+
+    run_ids = {}
+    for company in DEALS:
+        run_id = seed_deal(db, company["id"], arr_paise=company["arr_paise"],
+                            active_mrr_paise=company["active_mrr_paise"], has_issues=company["has_issues"])
+        if company.get("brutal"):
+            _seed_brutal_cases(db, company["id"])
+        db.add(Deal(id=company["id"], name=company["name"], industry=company["industry"],
+                     stage=company["stage"], synthetic=True, run_id=run_id, created_at=_now()))
+        db.commit()
+        run_ids[company["id"]] = run_id
+
+    return run_ids["northstar"]
+
+
+def introduce_july_evidence(db: Session, deal_id: str) -> dict:
+    if db.query(Document).filter(Document.id == f"{deal_id}-doc-update-jul").first():
         return {"introduced": False, "reason": "already introduced"}
 
-    for doc_id, title, dtype, filename, date in JULY_DOCS:
+    for doc_base_id, title, dtype, filename, date in JULY_DOCS:
         db.add(Document(
-            id=doc_id, deal_id="demo", title=title, type=dtype, version="1.0",
+            id=f"{deal_id}-{doc_base_id}", deal_id=deal_id, title=title, type=dtype, version="1.0",
             document_date=date, ingested_at="2026-09-27T00:00:00Z",
             content=_read(filename), source_url=f"data/demo/{filename}", synthetic=True,
         ))
     db.commit()
 
     db.add_all([
-        Claim(id="claim-mrr-jul", metric="mrr", original_text="Our current MRR is ₹17 lakh.",
+        Claim(id=f"{deal_id}-claim-mrr-jul", deal_id=deal_id, metric="mrr", original_text="Our current MRR is ₹17 lakh.",
               stated_amount_paise=17_00_000_00, as_of_date="2026-07-01",
               definition="Current MRR as stated in the July investor update", status="claimed",
-              sources=[sref("doc-update-jul", "paragraph 1", "Our current MRR is ₹17 lakh.")], created_at=_now()),
-        Claim(id="claim-churn-jul", metric="churned_mrr", original_text="A major customer (MegaCorp) paying ₹4 lakh/month has churned.",
+              sources=[sref(f"{deal_id}-doc-update-jul", "paragraph 1", "Our current MRR is ₹17 lakh.")], created_at=_now()),
+        Claim(id=f"{deal_id}-claim-churn-jul", deal_id=deal_id, metric="churned_mrr", original_text="A major customer (MegaCorp) paying ₹4 lakh/month has churned.",
               stated_amount_paise=4_00_000_00, as_of_date="2026-07-05",
               definition="Monthly recurring revenue lost to the named churned customer", status="claimed",
-              sources=[sref("doc-churn-notice-jul", "paragraph 1")], created_at=_now()),
+              sources=[sref(f"{deal_id}-doc-churn-notice-jul", "paragraph 1")], created_at=_now()),
     ])
     db.commit()
 
     db.add(Issue(
-        id="issue-mrr-jul", claim_id="claim-mrr-jul", status="open",
+        id=f"{deal_id}-issue-mrr-jul", deal_id=deal_id, claim_id=f"{deal_id}-claim-mrr-jul", status="open",
         question="July update states ₹17 lakh current MRR, but a dated churn notice shows a ₹4 lakh/month customer churned on July 5. Is post-churn MRR ₹13 lakh?",
-        evidence_for=[sref("doc-update-jul", "paragraph 1")],
-        evidence_against=[sref("doc-churn-notice-jul", "paragraph 1")],
-        history=[event("opened", "Issue opened: churn notice postdates the reported July MRR figure.", ["doc-update-jul", "doc-churn-notice-jul"], at="2026-07-05T00:00:00Z")],
+        evidence_for=[sref(f"{deal_id}-doc-update-jul", "paragraph 1")],
+        evidence_against=[sref(f"{deal_id}-doc-churn-notice-jul", "paragraph 1")],
+        history=[event("opened", "Issue opened: churn notice postdates the reported July MRR figure.", [f"{deal_id}-doc-update-jul", f"{deal_id}-doc-churn-notice-jul"], at="2026-07-05T00:00:00Z")],
         suggested_request="Request the July billing ledger to confirm live MRR after the churn.",
     ))
     db.commit()

@@ -2,18 +2,25 @@ from sqlalchemy import Column, BigInteger, String, Text, JSON, ForeignKey, Boole
 from app.db.base import Base
 
 
-class DemoRun(Base):
-    """Single-row table holding the current run_id, so a reset can hand Nitesh's
-    Hindsight integration a fresh scope without leaking memory across demo runs."""
-    __tablename__ = "demo_runs"
-    id = Column(String, primary_key=True)  # always "demo"
+class Deal(Base):
+    """One row per seeded company/mandate. Replaces the old single-row DemoRun —
+    the app now supports many concurrent deals, each with its own run_id (for
+    Hindsight memory scoping) so resetting the whole demo gives every deal a fresh,
+    non-leaking memory scope in one step."""
+    __tablename__ = "deals"
+    id = Column(String, primary_key=True)  # slug, e.g. "northstar", "kinetix-bio"
+    name = Column(String)
+    industry = Column(String, nullable=True)
+    stage = Column(String, nullable=True)  # e.g. "Series A", "Seed Extension"
+    synthetic = Column(Boolean, default=True)
     run_id = Column(String)
+    created_at = Column(String)
 
 
 class Document(Base):
     __tablename__ = "documents"
     id = Column(String, primary_key=True, index=True)
-    deal_id = Column(String, default="demo")
+    deal_id = Column(String, index=True)
     title = Column(String)
     type = Column(String)
     version = Column(String)
@@ -29,7 +36,7 @@ class Document(Base):
 class Claim(Base):
     __tablename__ = "claims"
     id = Column(String, primary_key=True, index=True)
-    deal_id = Column(String, default="demo")
+    deal_id = Column(String, index=True)
     metric = Column(String)
     original_text = Column(Text)
     stated_amount_paise = Column(BigInteger, nullable=True)  # Integer overflows past ~₹21.5L; use BigInteger
@@ -44,7 +51,7 @@ class Claim(Base):
 class Issue(Base):
     __tablename__ = "issues"
     id = Column(String, primary_key=True, index=True)
-    deal_id = Column(String, default="demo")
+    deal_id = Column(String, index=True)
     claim_id = Column(String, ForeignKey("claims.id"))
     status = Column(String)  # open | explained | resolved | reopened
     question = Column(Text)
@@ -72,7 +79,7 @@ class ChatSession(Base):
     __tablename__ = "chat_sessions"
     id = Column(String, primary_key=True, index=True)
     run_id = Column(String, index=True)
-    deal_id = Column(String, default="demo")
+    deal_id = Column(String, index=True)
     title = Column(String)
     created_at = Column(String)
     updated_at = Column(String)

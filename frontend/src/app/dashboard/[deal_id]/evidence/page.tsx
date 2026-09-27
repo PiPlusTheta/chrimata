@@ -1,12 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 import { fetchDocuments, registerDocument } from "../../../../api/client";
 import type { DocumentRecord } from "../../../../api/types";
 import { Button, DataTable, EmptyState, Input, PageHeader, Panel, StatusBadge } from "../../../../components/dashboard/ui";
 import { MarkdownMessage } from "../../../../components/dashboard/MarkdownMessage";
 
 export default function EvidenceVault() {
+  const params = useParams<{ deal_id?: string }>();
+  const dealId = params?.deal_id || "northstar";
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(() => typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("document"));
   const [search, setSearch] = useState("");
@@ -24,10 +27,10 @@ export default function EvidenceVault() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setDocuments(await fetchDocuments()); setError(null); }
+    try { setDocuments(await fetchDocuments(dealId)); setError(null); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to load evidence."); }
     finally { setLoading(false); }
-  }, []);
+  }, [dealId]);
   useEffect(() => { void Promise.resolve().then(load); }, [load]);
   useEffect(() => {
     const syncSelection = () => setSelectedId(new URLSearchParams(window.location.search).get("document"));
@@ -69,8 +72,8 @@ export default function EvidenceVault() {
     const documentId = `doc-${crypto.randomUUID()}`;
     setSaving(true); setError(null); setSuccess(null);
     try {
-      const result = await registerDocument({
-        id: documentId, deal_id: "demo", title: title.trim(), type, version: "1", document_date: date,
+      const result = await registerDocument(dealId, {
+        id: documentId, deal_id: dealId, title: title.trim(), type, version: "1", document_date: date,
         ingested_at: new Date().toISOString(), content: content.trim(), synthetic: false,
         claims: claimMetric.trim() && claimText.trim() ? [{
           id: `claim-${crypto.randomUUID()}`, metric: claimMetric.trim(), original_text: claimText.trim(),

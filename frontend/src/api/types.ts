@@ -15,6 +15,16 @@ export interface Calculation {
   sources: SourceRef[];
 }
 
+export interface DealSummary {
+  id: string;
+  name: string;
+  industry: string | null;
+  stage: string | null;
+  synthetic: boolean;
+  open_issue_count: number;
+  document_count: number;
+}
+
 export interface Summary {
   deal_id: string;
   company_name: string;

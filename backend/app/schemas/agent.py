@@ -54,7 +54,7 @@ class ReflectResponse(BaseModel):
 # --- Real, DB-persisted chat sessions for Ask Chrimata ---
 
 class ChatSessionCreate(BaseModel):
-    deal_id: str = "demo"
+    deal_id: str
 
 class ChatSessionSchema(BaseModel):
     id: str

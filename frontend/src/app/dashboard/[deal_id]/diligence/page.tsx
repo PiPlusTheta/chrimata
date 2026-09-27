@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MarkdownMessage } from "../../../../components/dashboard/MarkdownMessage";
 import { useParams } from "next/navigation";
 import {
   fetchIssues,
@@ -36,7 +37,7 @@ import type { Claim, DocumentRecord, Issue, Summary } from "../../../../api/type
 
 export default function DiligenceWorkspace() {
   const params = useParams<{ deal_id?: string }>();
-  const dealId = params?.deal_id || "demo";
+  const dealId = params?.deal_id || "northstar";
   const { summary } = useDashboardStore();
   const [issues, setIssues] = useState<Issue[]>([]);
   const [claims, setClaims] = useState<Claim[]>([]);
@@ -60,7 +61,7 @@ export default function DiligenceWorkspace() {
     setLoading(true);
     try {
       const [iss, cls, ds] = await Promise.all([
-        fetchIssues(), fetchClaims(), fetchDocuments()
+        fetchIssues(dealId), fetchClaims(dealId), fetchDocuments(dealId)
       ]);
       setIssues(iss);
       setClaims(cls);
@@ -84,7 +85,7 @@ export default function DiligenceWorkspace() {
   };
 
   const handleExportReport = async () => {
-    const md = await fetchReport();
+    const md = await fetchReport(dealId);
     const blob = new Blob([md], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -98,7 +99,7 @@ export default function DiligenceWorkspace() {
     setDocLoading(true);
     setSelectedLocator(locator || null);
     try {
-      const doc = await fetchDocument(documentId);
+      const doc = await fetchDocument(dealId, documentId);
       setSelectedDoc(doc);
     } catch {
       setSelectedDoc({ title: documentId, content: "Could not load this document.", document_date: "" });
@@ -142,7 +143,7 @@ export default function DiligenceWorkspace() {
 
   return (
     <>
-<PageHeader eyebrow={<>Target Verification Profile {openIssueCount > 0 && <span className="text-terra-light">/ {openIssueCount} Open Issue{openIssueCount !== 1 ? "s" : ""}</span>}</>} title={<>{summary?.company_name} <StatusBadge>Synthetic Demo</StatusBadge></>} description={`${summary?.document_count} documents on record`} actions={<><Button onClick={handleExportReport}><DocumentDownload className="h-3.5 w-3.5" /> Export Report</Button><Button onClick={async () => { await injectJulyEvidence(); loadData(); }}><PlayCircle className="h-3.5 w-3.5" /> Add July Evidence</Button><Button variant="danger" onClick={handleReset}><Refresh2 className="h-3.5 w-3.5" /> Reset Demo</Button><Link href={ROUTES.ask(dealId)} className="dashboard-button dashboard-button-primary">Ask Chrimata</Link></>} />
+<PageHeader eyebrow={<>Target Verification Profile {openIssueCount > 0 && <span className="text-terra-light">/ {openIssueCount} Open Issue{openIssueCount !== 1 ? "s" : ""}</span>}</>} title={<>{summary?.company_name} <StatusBadge>Synthetic Demo</StatusBadge></>} description={`${summary?.document_count} documents on record`} actions={<><Button onClick={handleExportReport}><DocumentDownload className="h-3.5 w-3.5" /> Export Report</Button><Button onClick={async () => { await injectJulyEvidence(dealId); loadData(); }}><PlayCircle className="h-3.5 w-3.5" /> Add July Evidence</Button><Button variant="danger" onClick={handleReset}><Refresh2 className="h-3.5 w-3.5" /> Reset Demo</Button><Link href={ROUTES.ask(dealId)} className="dashboard-button dashboard-button-primary">Ask Chrimata</Link></>} />
 <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
           {/* LEFT */}
           <div className="xl:col-span-12 flex flex-col gap-8">
@@ -190,7 +191,7 @@ export default function DiligenceWorkspace() {
               <h3 className="font-display text-lg text-text-primary mb-1">Claimed vs. Calculated ARR</h3>
               <p className="font-mono text-[10px] text-outline mb-5">March deck assertion vs. April-ledger-derived live ARR — exact figures, no fabricated trend</p>
               {(() => {
-                const claimArr = claims.find((c) => c.id === "claim-arr-mar");
+                const claimArr = claims.find((c) => c.id.endsWith("-claim-arr-mar"));
                 const calcArr = summary?.metrics?.find((m) => m.id === "calc-live-arr-apr");
                 const claimed = claimArr?.stated_amount_paise || 0;
                 const calculated = calcArr?.amount_paise || 0;
@@ -286,7 +287,9 @@ export default function DiligenceWorkspace() {
                         <span className="text-xs font-medium text-text-primary truncate">{d.title}</span>
                         <span className="text-[10px] text-outline font-mono">{d.document_date}</span>
                       </div>
-                      <div className="text-[10px] text-on-surface-variant truncate">{d.content}</div>
+                      <div className="text-[10px] text-on-surface-variant line-clamp-2 [&_.ask-markdown]:text-[10px] [&_p]:my-0 [&_h1]:text-[10px] [&_h2]:text-[10px] [&_ul]:my-0 [&_li]:my-0">
+                        <MarkdownMessage text={d.content} />
+                      </div>
                     </div>
                   </button>
                 ))}
@@ -312,8 +315,8 @@ export default function DiligenceWorkspace() {
                   <CloseSquare className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-4 overflow-y-auto text-sm text-on-surface-variant whitespace-pre-wrap font-mono">
-                {docLoading ? "Fetching document..." : selectedDoc?.content}
+              <div className="p-4 overflow-y-auto text-sm text-on-surface-variant">
+                {docLoading ? "Fetching document..." : <MarkdownMessage text={selectedDoc?.content || ""} />}
               </div>
             </motion.div>
           </motion.div>

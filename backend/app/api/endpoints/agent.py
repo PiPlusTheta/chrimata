@@ -52,11 +52,12 @@ def _gather_evidence(db: Session, deal_id: str, question: str):
     claims = db.query(Claim).filter(Claim.deal_id == deal_id).all()
     documents = db.query(Document).filter(Document.deal_id == deal_id).all()
     reviews = db.query(Review).join(Issue, Review.issue_id == Issue.id).filter(Issue.deal_id == deal_id).all()
-    metrics = _calculations(db)
+    metrics = _calculations(db, deal_id)
     terms = {word.lower() for word in question.split() if len(word) > 3}
     ranked_documents = sorted(documents, key=lambda d: sum(term in (d.title + " " + d.content).lower() for term in terms), reverse=True)
+    from app.api.endpoints.evidence import _deal_name
     return {
-        "company_name": "Northstar Ops" if deal_id == "demo" else deal_id,
+        "company_name": _deal_name(db, deal_id),
         "issues": [IssueSchema.model_validate(i).model_dump(mode="json") for i in issues],
         "metrics": [m.model_dump(mode="json") for m in metrics],
         "claims": [{"id": c.id, "metric": c.metric, "original_text": c.original_text, "stated_amount_paise": c.stated_amount_paise, "stated_months": c.stated_months, "as_of_date": c.as_of_date, "status": c.status, "sources": c.sources} for c in claims],
@@ -67,11 +68,11 @@ def _gather_evidence(db: Session, deal_id: str, question: str):
 @router.post("/analyze", response_model=AnalyzeResponse)
 async def analyze(req: AnalyzeRequest, db: Session = Depends(get_db)):
     from app.api.endpoints.evidence import _run_id, _calculations
-    run_id = _run_id(db)
+    run_id = _run_id(db, req.deal_id)
 
     # Gather evidence
-    issues = db.query(Issue).all()
-    metrics = _calculations(db)
+    issues = db.query(Issue).filter(Issue.deal_id == req.deal_id).all()
+    metrics = _calculations(db, req.deal_id)
 
     evidence = {
         "issues": [IssueSchema.model_validate(i).model_dump(mode="json") for i in issues],
@@ -92,10 +93,10 @@ async def analyze(req: AnalyzeRequest, db: Session = Depends(get_db)):
 @router.post("/ask", response_model=AgentAnswer)
 async def ask(req: AskRequest, db: Session = Depends(get_db)):
     from app.api.endpoints.evidence import _run_id, _calculations
-    run_id = _run_id(db)
+    run_id = _run_id(db, req.deal_id)
 
-    issues = db.query(Issue).all()
-    metrics = _calculations(db)
+    issues = db.query(Issue).filter(Issue.deal_id == req.deal_id).all()
+    metrics = _calculations(db, req.deal_id)
 
     evidence = {
         "issues": [IssueSchema.model_validate(i).model_dump(mode="json") for i in issues],
@@ -118,15 +119,17 @@ async def retain_review(req: RetainReviewRequest, db: Session = Depends(get_db))
         # Idempotent: don't re-call Hindsight for an already-retained review.
         return RetainReviewResponse(status="retained")
 
+    issue = db.query(Issue).filter(Issue.id == review.issue_id).first()
+    deal_id = issue.deal_id if issue else None
     from app.api.endpoints.evidence import _run_id
-    run_id = _run_id(db)
-    bank_id = _get_bank_id(run_id, "demo")
+    run_id = _run_id(db, deal_id) if deal_id else "unknown"
+    bank_id = _get_bank_id(run_id, deal_id or "unknown")
 
     meta = {
         "review_id": review.id,
         "issue_id": review.issue_id,
         "decision": review.decision,
-        "deal_id": "demo",
+        "deal_id": deal_id,
         "run_id": run_id,
         "timestamp": str(review.reviewed_at),
         "author_role": review.reviewer
@@ -157,7 +160,7 @@ async def reflect(req: ReflectRequest, db: Session = Depends(get_db)):
         return ReflectResponse(available=False, reason="Hindsight is not configured in this environment")
 
     from app.api.endpoints.evidence import _run_id
-    run_id = _run_id(db)
+    run_id = _run_id(db, req.deal_id)
     bank_id = _get_bank_id(run_id, req.deal_id)
     query = req.query or "Summarize everything learned across this investigation so far: resolved discrepancies, open questions, and how they were explained."
 
@@ -175,7 +178,7 @@ async def reflect(req: ReflectRequest, db: Session = Depends(get_db)):
 @router.post("/sessions", response_model=ChatSessionSchema)
 def create_chat_session(req: ChatSessionCreate, db: Session = Depends(get_db)):
     from app.api.endpoints.evidence import _run_id
-    run_id = _run_id(db)
+    run_id = _run_id(db, req.deal_id)
     now = _now()
     session = ChatSession(
         id=f"chat_{uuid.uuid4().hex[:10]}", run_id=run_id, deal_id=req.deal_id,
@@ -187,10 +190,10 @@ def create_chat_session(req: ChatSessionCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/sessions", response_model=list[ChatSessionSchema])
-def list_chat_sessions(db: Session = Depends(get_db)):
+def list_chat_sessions(deal_id: str, db: Session = Depends(get_db)):
     from app.api.endpoints.evidence import _run_id
-    run_id = _run_id(db)
-    sessions = db.query(ChatSession).filter(ChatSession.run_id == run_id).order_by(ChatSession.updated_at.desc()).all()
+    run_id = _run_id(db, deal_id)
+    sessions = db.query(ChatSession).filter(ChatSession.run_id == run_id, ChatSession.deal_id == deal_id).order_by(ChatSession.updated_at.desc()).all()
     return [_session_out(s, db) for s in sessions]
 
 
@@ -198,7 +201,7 @@ def list_chat_sessions(db: Session = Depends(get_db)):
 def get_chat_session(session_id: str, db: Session = Depends(get_db)):
     session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
     from app.api.endpoints.evidence import _run_id
-    if not session or session.run_id != _run_id(db):
+    if not session or session.run_id != _run_id(db, session.deal_id):
         raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Session not found"})
     messages = db.query(ChatMessage).filter(ChatMessage.session_id == session_id).order_by(ChatMessage.created_at).all()
     base = _session_out(session, db)
@@ -209,7 +212,7 @@ def get_chat_session(session_id: str, db: Session = Depends(get_db)):
 def rename_chat_session(session_id: str, req: ChatSessionRename, db: Session = Depends(get_db)):
     session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
     from app.api.endpoints.evidence import _run_id
-    if not session or session.run_id != _run_id(db):
+    if not session or session.run_id != _run_id(db, session.deal_id):
         raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Session not found"})
     session.title = req.title.strip()[:80] or session.title
     session.updated_at = _now()
@@ -221,7 +224,7 @@ def rename_chat_session(session_id: str, req: ChatSessionRename, db: Session = D
 def delete_chat_session(session_id: str, db: Session = Depends(get_db)):
     session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
     from app.api.endpoints.evidence import _run_id
-    if not session or session.run_id != _run_id(db):
+    if not session or session.run_id != _run_id(db, session.deal_id):
         raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Session not found"})
     db.query(ChatMessage).filter(ChatMessage.session_id == session_id).delete()
     db.delete(session)
@@ -240,7 +243,7 @@ async def stream_chat_message(session_id: str, payload: ChatMessageCreate, db: S
     if not session:
         raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Session not found"})
     from app.api.endpoints.evidence import _run_id
-    run_id = _run_id(db)
+    run_id = _run_id(db, session.deal_id)
     question = payload.question
     regenerate = payload.regenerate
     if session.run_id != run_id:

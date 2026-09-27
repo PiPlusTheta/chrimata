@@ -7,7 +7,7 @@ import uuid
 from decimal import Decimal
 
 from app.db.session import get_db
-from app.models.domain import Document, Claim, Issue, Review, DemoRun
+from app.models.domain import Document, Claim, Issue, Review, Deal
 from app.schemas.domain import (
     DocumentSchema, ClaimSchema, IssueSchema, ReviewSchema, ReviewCreate,
     CalculationSchema, SummarySchema, MemoryStatusUpdate, SourceRef,
@@ -31,79 +31,104 @@ def _err(status_code: int, code: str, message: str):
     raise HTTPException(status_code=status_code, detail={"code": code, "message": message})
 
 
-def _run_id(db: Session) -> str:
-    row = db.query(DemoRun).filter(DemoRun.id == "demo").first()
+def _run_id(db: Session, deal_id: str) -> str:
+    row = db.query(Deal).filter(Deal.id == deal_id).first()
     return row.run_id if row else "unknown"
 
 
-def _claim_paise(db: Session, claim_id: str) -> int:
-    claim = db.query(Claim).filter(Claim.id == claim_id).first()
-    if not claim or claim.stated_amount_paise is None:
-        _err(500, "seed_data_missing", f"Expected numeric claim {claim_id} not found")
-    return claim.stated_amount_paise
+def _deal_name(db: Session, deal_id: str) -> str:
+    row = db.query(Deal).filter(Deal.id == deal_id).first()
+    return row.name if row else deal_id.replace("-", " ").title()
 
 
-def _claim_source(db: Session, claim_id: str) -> SourceRef:
-    claim = db.query(Claim).filter(Claim.id == claim_id).first()
-    return SourceRef(**claim.sources[0])
+def _claim_by_metric(db: Session, deal_id: str, metric: str) -> Claim | None:
+    return db.query(Claim).filter(
+        Claim.deal_id == deal_id,
+        Claim.metric == metric,
+        Claim.stated_amount_paise.isnot(None)
+    ).order_by(Claim.as_of_date.desc(), Claim.created_at.desc()).first()
 
 
-def _optional_claim_paise(db: Session, claim_id: str):
-    claim = db.query(Claim).filter(Claim.id == claim_id).first()
-    return claim.stated_amount_paise if claim else None
+def _calculations(db: Session, deal_id: str) -> List[CalculationSchema]:
+    calcs = []
+    
+    active_mrr = _claim_by_metric(db, deal_id, "active_mrr")
+    if active_mrr:
+        calcs.append(EvidenceService.calculate_annualised_arr(
+            active_mrr.stated_amount_paise, SourceRef(**active_mrr.sources[0]), active_mrr.as_of_date
+        ))
 
+    cash = _claim_by_metric(db, deal_id, "cash")
+    burn = _claim_by_metric(db, deal_id, "burn")
+    if cash and burn:
+        calcs.append(EvidenceService.calculate_simple_runway(
+            cash.stated_amount_paise, SourceRef(**cash.sources[0]),
+            burn.stated_amount_paise, SourceRef(**burn.sources[0]),
+            cash.as_of_date
+        ))
 
-def _calculations(db: Session) -> List[CalculationSchema]:
-    active_mrr = _claim_paise(db, "claim-active-mrr-apr")
-    cash = _claim_paise(db, "claim-cash-q1")
-    burn = _claim_paise(db, "claim-burn-q1")
-    financing = _claim_paise(db, "claim-financing-proposed-jun")
+    financing = _claim_by_metric(db, deal_id, "proposed_financing")
+    if cash and burn and financing:
+        calcs.append(EvidenceService.calculate_proposed_runway(
+            cash.stated_amount_paise, SourceRef(**cash.sources[0]),
+            financing.stated_amount_paise, SourceRef(**financing.sources[0]),
+            burn.stated_amount_paise, SourceRef(**burn.sources[0]),
+            financing.as_of_date
+        ))
 
-    calcs = [
-        EvidenceService.calculate_annualised_arr(active_mrr, _claim_source(db, "claim-active-mrr-apr"), "2026-04-01"),
-        EvidenceService.calculate_simple_runway(cash, _claim_source(db, "claim-cash-q1"), burn, _claim_source(db, "claim-burn-q1"), "2026-04-01"),
-        EvidenceService.calculate_proposed_runway(
-            cash, _claim_source(db, "claim-cash-q1"),
-            financing, _claim_source(db, "claim-financing-proposed-jun"),
-            burn, _claim_source(db, "claim-burn-q1"),
-            "2026-06-30",
-        ),
-    ]
-
-    # July MRR / churn claims only exist once introduce_july_evidence() has run —
-    # before that, this calculation simply isn't available yet (not an error).
-    reported_mrr = _optional_claim_paise(db, "claim-mrr-jul")
-    churned = _optional_claim_paise(db, "claim-churn-jul")
-    if reported_mrr is not None and churned is not None:
+    reported_mrr = _claim_by_metric(db, deal_id, "mrr")
+    churned = _claim_by_metric(db, deal_id, "churned_mrr")
+    if reported_mrr and churned:
         calcs.append(EvidenceService.calculate_inferred_post_churn_mrr(
-            reported_mrr, _claim_source(db, "claim-mrr-jul"),
-            churned, _claim_source(db, "claim-churn-jul"),
-            "2026-07-05",
+            reported_mrr.stated_amount_paise, SourceRef(**reported_mrr.sources[0]),
+            churned.stated_amount_paise, SourceRef(**churned.sources[0]),
+            churned.as_of_date
         ))
     return calcs
 
 
-@router.get("/deals/demo/summary", response_model=SummarySchema)
-def get_summary(db: Session = Depends(get_db)):
-    doc_count = db.query(Document).count()
-    open_issues = db.query(Issue).filter(Issue.status.in_(["open", "reopened"])).count()
+@router.get("/deals")
+def list_deals(db: Session = Depends(get_db)):
+    deals = db.query(Deal).order_by(Deal.name).all()
+    return [
+        {
+            "id": d.id, "name": d.name, "industry": d.industry, "stage": d.stage,
+            "synthetic": d.synthetic,
+            "open_issue_count": db.query(Issue).filter(Issue.deal_id == d.id, Issue.status.in_(["open", "reopened"])).count(),
+            "document_count": db.query(Document).filter(Document.deal_id == d.id).count(),
+        }
+        for d in deals
+    ]
+
+
+@router.get("/deals/{deal_id}/summary", response_model=SummarySchema)
+def get_summary(deal_id: str, db: Session = Depends(get_db)):
+    doc_count = db.query(Document).filter(Document.deal_id == deal_id).count()
+    open_issues = (
+        db.query(Issue)
+        .filter(Issue.deal_id == deal_id, Issue.status.in_(["open", "reopened"]))
+        .count()
+    )
+    company_name = _deal_name(db, deal_id)
+
     return SummarySchema(
-        company_name="Northstar Ops",
-        run_id=_run_id(db),
+        deal_id=deal_id,
+        company_name=company_name,
+        run_id=_run_id(db, deal_id),
         document_count=doc_count,
         open_issue_count=open_issues,
-        metrics=_calculations(db),
+        metrics=_calculations(db, deal_id),
     )
 
 
-@router.get("/deals/demo/documents", response_model=List[DocumentSchema])
-def get_documents(db: Session = Depends(get_db)):
-    return db.query(Document).all()
+@router.get("/deals/{deal_id}/documents", response_model=List[DocumentSchema])
+def get_documents(deal_id: str, db: Session = Depends(get_db)):
+    return db.query(Document).filter(Document.deal_id == deal_id).all()
 
 
-@router.get("/deals/demo/documents/{document_id}", response_model=DocumentSchema)
-def get_document(document_id: str, db: Session = Depends(get_db)):
-    doc = db.query(Document).filter(Document.id == document_id).first()
+@router.get("/deals/{deal_id}/documents/{document_id}", response_model=DocumentSchema)
+def get_document(deal_id: str, document_id: str, db: Session = Depends(get_db)):
+    doc = db.query(Document).filter(Document.id == document_id, Document.deal_id == deal_id).first()
     if not doc:
         _err(404, "not_found", "Document not found")
     return doc
@@ -129,7 +154,7 @@ def _maybe_open_issue_for_new_claim(db: Session, new_claim: Claim, doc_title: st
 
     prior = (
         db.query(Claim)
-        .filter(Claim.metric == new_claim.metric, Claim.id != new_claim.id, Claim.stated_amount_paise.isnot(None))
+        .filter(Claim.deal_id == new_claim.deal_id, Claim.metric == new_claim.metric, Claim.id != new_claim.id, Claim.stated_amount_paise.isnot(None))
         .order_by(Claim.as_of_date.desc(), Claim.created_at.desc())
         .first()
     )
@@ -150,7 +175,7 @@ def _maybe_open_issue_for_new_claim(db: Session, new_claim: Claim, doc_title: st
     new_source = SourceRef(**new_claim.sources[0]).model_dump()
     prior_source = SourceRef(**prior.sources[0]).model_dump()
     issue = Issue(
-        id=issue_id, claim_id=new_claim.id, status="open",
+        id=issue_id, deal_id=new_claim.deal_id, claim_id=new_claim.id, status="open",
         question=(
             f"'{doc_title}' states {new_claim.metric} of {_amount_display(new_claim.stated_amount_paise)} "
             f"as of {new_claim.as_of_date}, but an earlier claim on the same metric ({prior.original_text!r}, "
@@ -165,8 +190,8 @@ def _maybe_open_issue_for_new_claim(db: Session, new_claim: Claim, doc_title: st
     return issue
 
 
-@router.post("/deals/demo/documents", response_model=DocumentIngestResponse)
-def add_document(payload: DocumentIngestRequest, db: Session = Depends(get_db)):
+@router.post("/deals/{deal_id}/documents", response_model=DocumentIngestResponse)
+def add_document(deal_id: str, payload: DocumentIngestRequest, db: Session = Depends(get_db)):
     """Controlled new-document ingestion for the live demo. Optionally accepts
     `claims` to create alongside the document — any claim whose amount differs
     materially from a prior claim on the same metric automatically opens a new
@@ -175,6 +200,7 @@ def add_document(payload: DocumentIngestRequest, db: Session = Depends(get_db)):
         _err(409, "already_exists", f"Document {payload.id} already exists")
 
     doc_fields = payload.model_dump(exclude={"claims"})
+    doc_fields["deal_id"] = deal_id  # always the URL path's deal, never the request body's
     db_doc = Document(**doc_fields)
     db.add(db_doc)
     db.commit()
@@ -185,7 +211,7 @@ def add_document(payload: DocumentIngestRequest, db: Session = Depends(get_db)):
         if db.query(Claim).filter(Claim.id == c.id).first():
             _err(409, "already_exists", f"Claim {c.id} already exists")
         db_claim = Claim(
-            id=c.id, metric=c.metric, original_text=c.original_text,
+            id=c.id, deal_id=deal_id, metric=c.metric, original_text=c.original_text,
             stated_amount_paise=c.stated_amount_paise, stated_months=c.stated_months,
             as_of_date=c.as_of_date, definition=c.definition, status=c.status,
             sources=[{"document_id": payload.id, "locator": c.locator, "quote": c.quote}],
@@ -204,9 +230,9 @@ def add_document(payload: DocumentIngestRequest, db: Session = Depends(get_db)):
     return DocumentIngestResponse(document=db_doc, claims_created=claims_created, issues_opened=issues_opened)
 
 
-@router.get("/deals/demo/claims", response_model=List[ClaimSchema])
-def get_claims(db: Session = Depends(get_db)):
-    return db.query(Claim).all()
+@router.get("/deals/{deal_id}/claims", response_model=List[ClaimSchema])
+def get_claims(deal_id: str, db: Session = Depends(get_db)):
+    return db.query(Claim).filter(Claim.deal_id == deal_id).all()
 
 
 @router.get("/claims/{claim_id}", response_model=ClaimSchema)
@@ -217,14 +243,14 @@ def get_claim(claim_id: str, db: Session = Depends(get_db)):
     return claim
 
 
-@router.get("/deals/demo/calculations", response_model=List[CalculationSchema])
-def get_calculations(db: Session = Depends(get_db)):
-    return _calculations(db)
+@router.get("/deals/{deal_id}/calculations", response_model=List[CalculationSchema])
+def get_calculations(deal_id: str, db: Session = Depends(get_db)):
+    return _calculations(db, deal_id)
 
 
-@router.get("/deals/demo/issues", response_model=List[IssueSchema])
-def get_issues(db: Session = Depends(get_db)):
-    return db.query(Issue).all()
+@router.get("/deals/{deal_id}/issues", response_model=List[IssueSchema])
+def get_issues(deal_id: str, db: Session = Depends(get_db)):
+    return db.query(Issue).filter(Issue.deal_id == deal_id).all()
 
 
 @router.get("/issues/{issue_id}/reviews", response_model=List[ReviewSchema])
@@ -256,7 +282,7 @@ def add_review(issue_id: str, review: ReviewCreate, db: Session = Depends(get_db
     if not review.explanation.strip():
         _err(400, "empty_explanation", "explanation must not be empty")
 
-    if issue_id == "issue-arr-apr" and review.decision == "resolve":
+    if issue_id.endswith("-issue-arr-apr") and review.decision == "resolve":
         prior_accept = db.query(Review).filter(
             Review.issue_id == issue_id, Review.decision == "accept_explanation"
         ).first()
@@ -314,19 +340,20 @@ def reset_demo(db: Session = Depends(get_db)):
     return {"message": "Demo reset successfully", "run_id": run_id}
 
 
-@router.get("/deals/demo/report")
-def get_report(db: Session = Depends(get_db)):
+@router.get("/deals/{deal_id}/report")
+def get_report(deal_id: str, db: Session = Depends(get_db)):
     """A deterministic (no LLM) markdown diligence report: every claim, every issue
     with its full review history, and the current calculations — the same DB facts
     the rest of the API exposes, just assembled into one downloadable document."""
     from fastapi.responses import PlainTextResponse
 
-    claims = db.query(Claim).order_by(Claim.as_of_date).all()
-    issues = db.query(Issue).all()
-    calcs = _calculations(db)
-    run_id = _run_id(db)
+    claims = db.query(Claim).filter(Claim.deal_id == deal_id).order_by(Claim.as_of_date).all()
+    issues = db.query(Issue).filter(Issue.deal_id == deal_id).all()
+    calcs = _calculations(db, deal_id)
+    run_id = _run_id(db, deal_id)
 
-    lines = [f"# Chrimata Diligence Report — Northstar Ops", "", f"_Run: {run_id}_", ""]
+    company_name = _deal_name(db, deal_id)
+    lines = [f"# Chrimata Diligence Report — {company_name}", "", f"_Run: {run_id}_", ""]
 
     lines.append("## Calculations")
     for c in calcs:
@@ -360,9 +387,8 @@ def get_report(db: Session = Depends(get_db)):
     return PlainTextResponse("\n".join(lines), media_type="text/markdown")
 
 
-@router.post("/deals/demo/introduce-july-evidence")
-def introduce_july(db: Session = Depends(get_db)):
+@router.post("/deals/{deal_id}/introduce-july-evidence")
+def introduce_july(deal_id: str, db: Session = Depends(get_db)):
     """Live-demo trigger: reveals the July documents/claims and opens issue-mrr-jul.
-    Idempotent — calling it again after it already ran is a harmless no-op, so the
-    'Add July Evidence' button can't create duplicates."""
-    return introduce_july_evidence(db)
+    Idempotent — calling it again after it already ran is a harmless no-op."""
+    return introduce_july_evidence(db, deal_id)

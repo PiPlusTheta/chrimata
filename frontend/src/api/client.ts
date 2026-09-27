@@ -1,33 +1,39 @@
-import type { AgentAnswer, ChatSession, ChatSessionDetail, Claim, DocumentInput, DocumentRecord, Issue, Summary } from "./types";
+import type { AgentAnswer, ChatSession, ChatSessionDetail, Claim, DealSummary, DocumentInput, DocumentRecord, Issue, Summary } from "./types";
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
-export async function fetchSummary(): Promise<Summary> {
-  const res = await fetch(`${API_BASE_URL}/deals/demo/summary`, { cache: 'no-store' });
+export async function fetchDeals(): Promise<DealSummary[]> {
+  const res = await fetch(`${API_BASE_URL}/deals`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to fetch deals");
+  return res.json();
+}
+
+export async function fetchSummary(dealId: string): Promise<Summary> {
+  const res = await fetch(`${API_BASE_URL}/deals/${dealId}/summary`, { cache: 'no-store' });
   if (!res.ok) throw new Error("Failed to fetch summary");
   return res.json();
 }
 
-export async function fetchIssues(): Promise<Issue[]> {
-  const res = await fetch(`${API_BASE_URL}/deals/demo/issues`, { cache: 'no-store' });
+export async function fetchIssues(dealId: string): Promise<Issue[]> {
+  const res = await fetch(`${API_BASE_URL}/deals/${dealId}/issues`, { cache: 'no-store' });
   if (!res.ok) throw new Error("Failed to fetch issues");
   return res.json();
 }
 
-export async function fetchClaims(): Promise<Claim[]> {
-  const res = await fetch(`${API_BASE_URL}/deals/demo/claims`, { cache: 'no-store' });
+export async function fetchClaims(dealId: string): Promise<Claim[]> {
+  const res = await fetch(`${API_BASE_URL}/deals/${dealId}/claims`, { cache: 'no-store' });
   if (!res.ok) throw new Error("Failed to fetch claims");
   return res.json();
 }
 
-export async function fetchDocuments(): Promise<DocumentRecord[]> {
-  const res = await fetch(`${API_BASE_URL}/deals/demo/documents`, { cache: 'no-store' });
+export async function fetchDocuments(dealId: string): Promise<DocumentRecord[]> {
+  const res = await fetch(`${API_BASE_URL}/deals/${dealId}/documents`, { cache: 'no-store' });
   if (!res.ok) throw new Error("Failed to fetch documents");
   return res.json();
 }
 
-export async function registerDocument(payload: DocumentInput): Promise<{ document: DocumentRecord; claims_created: string[]; issues_opened: string[] }> {
-  const res = await fetch(`${API_BASE_URL}/deals/demo/documents`, {
+export async function registerDocument(dealId: string, payload: DocumentInput): Promise<{ document: DocumentRecord; claims_created: string[]; issues_opened: string[] }> {
+  const res = await fetch(`${API_BASE_URL}/deals/${dealId}/documents`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -93,20 +99,20 @@ export async function resetDemo() {
   return res.json();
 }
 
-export async function fetchDocument(documentId: string): Promise<DocumentRecord> {
-  const res = await fetch(`${API_BASE_URL}/deals/demo/documents/${documentId}`, { cache: 'no-store' });
+export async function fetchDocument(dealId: string, documentId: string): Promise<DocumentRecord> {
+  const res = await fetch(`${API_BASE_URL}/deals/${dealId}/documents/${documentId}`, { cache: 'no-store' });
   if (!res.ok) throw new Error("Failed to fetch document");
   return res.json();
 }
 
-export async function fetchCalculations() {
-  const res = await fetch(`${API_BASE_URL}/deals/demo/calculations`, { cache: 'no-store' });
+export async function fetchCalculations(dealId: string) {
+  const res = await fetch(`${API_BASE_URL}/deals/${dealId}/calculations`, { cache: 'no-store' });
   if (!res.ok) throw new Error("Failed to fetch calculations");
   return res.json();
 }
 
-export async function fetchReport(): Promise<string> {
-  const res = await fetch(`${API_BASE_URL}/deals/demo/report`, { cache: 'no-store' });
+export async function fetchReport(dealId: string): Promise<string> {
+  const res = await fetch(`${API_BASE_URL}/deals/${dealId}/report`, { cache: 'no-store' });
   if (!res.ok) throw new Error("Failed to fetch report");
   return res.text();
 }
@@ -124,7 +130,7 @@ export async function agentReflect(dealId: string, query?: string) {
 // --- Ask Chrimata: real, DB-persisted chat sessions (backend: chat_sessions /
 // chat_messages tables). Nothing here is mocked client-side. ---
 
-export async function createChatSession(dealId = "demo"): Promise<ChatSession> {
+export async function createChatSession(dealId: string): Promise<ChatSession> {
   const res = await fetch(`${API_BASE_URL}/agent/sessions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -134,8 +140,8 @@ export async function createChatSession(dealId = "demo"): Promise<ChatSession> {
   return res.json();
 }
 
-export async function listChatSessions(): Promise<ChatSession[]> {
-  const res = await fetch(`${API_BASE_URL}/agent/sessions`, { cache: "no-store" });
+export async function listChatSessions(dealId: string): Promise<ChatSession[]> {
+  const res = await fetch(`${API_BASE_URL}/agent/sessions?deal_id=${encodeURIComponent(dealId)}`, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to list sessions");
   return res.json();
 }
@@ -238,11 +244,11 @@ export async function streamChatMessage(
   if (!completed && !signal?.aborted) handlers.onError?.("The response ended before it was saved. Retry the turn.");
 }
 
-export async function injectJulyEvidence() {
+export async function injectJulyEvidence(dealId: string) {
   // Calls Niloy's staged-reveal endpoint, which ingests the canonical July documents
   // (doc-update-jul, doc-churn-notice-jul, etc. — the same IDs already cited by
   // claims/issues) and opens issue-mrr-jul. Idempotent: safe to click twice.
-  const res = await fetch(`${API_BASE_URL}/deals/demo/introduce-july-evidence`, {
+  const res = await fetch(`${API_BASE_URL}/deals/${dealId}/introduce-july-evidence`, {
     method: "POST",
   });
   if (!res.ok) throw new Error("Failed to introduce July evidence");

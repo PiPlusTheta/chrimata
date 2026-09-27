@@ -8,7 +8,7 @@ class SourceRef(BaseModel):
 
 class DocumentSchema(BaseModel):
     id: str
-    deal_id: str = "demo"
+    deal_id: Optional[str] = None
     title: str
     type: str
     version: str
@@ -24,7 +24,7 @@ class DocumentSchema(BaseModel):
 
 class ClaimSchema(BaseModel):
     id: str
-    deal_id: str = "demo"
+    deal_id: str
     metric: str
     original_text: str
     stated_amount_paise: Optional[int] = None
@@ -56,7 +56,7 @@ class IssueEvent(BaseModel):
 
 class IssueSchema(BaseModel):
     id: str
-    deal_id: str = "demo"
+    deal_id: str
     claim_id: str
     status: str
     question: str
@@ -85,7 +85,7 @@ class CalculationSchema(BaseModel):
     sources: List[SourceRef]
 
 class SummarySchema(BaseModel):
-    deal_id: str = "demo"
+    deal_id: str
     company_name: str
     synthetic: bool = True
     run_id: str

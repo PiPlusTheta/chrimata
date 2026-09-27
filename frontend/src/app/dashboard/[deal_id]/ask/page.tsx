@@ -8,7 +8,11 @@ import { useChatStore } from "./store";
 import { Button } from "../../../../components/dashboard/ui";
 import { MarkdownMessage } from "../../../../components/dashboard/MarkdownMessage";
 
+import { useParams } from "next/navigation";
+
 export default function AskChrimata() {
+  const params = useParams<{ deal_id?: string }>();
+  const dealId = params?.deal_id || "northstar";
   const {
     summary,
     suggestions,
@@ -40,15 +44,15 @@ export default function AskChrimata() {
   const busy = phase !== "idle";
 
   useEffect(() => {
-    void init();
-  }, [init]);
+    void init(dealId);
+  }, [dealId, init]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length, streamingText]);
 
   async function handleNewChat() {
-    await newChat();
+    await newChat(dealId);
     setQuestion("");
     composerRef.current?.focus();
   }
@@ -67,7 +71,7 @@ export default function AskChrimata() {
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      void send(question);
+      void send(question, dealId);
       setQuestion("");
     } else if (e.key === "Escape" && busy) {
       stop();
@@ -108,7 +112,7 @@ export default function AskChrimata() {
                   <button onClick={(e) => startRename(s, e)} className="opacity-0 group-hover/item:opacity-100 text-outline hover:text-bronze transition-opacity flex-shrink-0">
                     <Edit2 size={16} />
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); deleteChat(s.id); }} className="opacity-0 group-hover/item:opacity-100 text-outline hover:text-terra-light transition-opacity flex-shrink-0">
+                  <button onClick={(e) => { e.stopPropagation(); deleteChat(s.id, dealId); }} className="opacity-0 group-hover/item:opacity-100 text-outline hover:text-terra-light transition-opacity flex-shrink-0">
                     <Trash size={16} />
                   </button>
                 </>
@@ -144,7 +148,7 @@ export default function AskChrimata() {
             {suggestions.length > 0 && (
               <div className="flex flex-col gap-2 w-full max-w-lg mt-4">
                 {suggestions.map((q, i) => (
-                  <button key={i} onClick={() => { setQuestion(""); send(q); }}
+                  <button key={i} onClick={() => { setQuestion(""); send(q, dealId); }}
                     className="text-left text-xs px-4 py-3 rounded-xl border border-outline-dim bg-aegean-card hover:border-bronze/40 text-on-surface-variant hover:text-text-primary transition-colors">
                     {q}
                   </button>
@@ -187,12 +191,12 @@ export default function AskChrimata() {
               {error && (
                 <div className="flex items-center justify-between gap-3 text-xs text-terra-light bg-terra-alert/10 border border-terra-alert/25 rounded-lg px-4 py-3">
                   <span>{error}</span>
-                  <button onClick={regenerate} className="flex items-center gap-1 hover:underline flex-shrink-0"><Refresh2 size={14} /> Retry</button>
+                  <button onClick={() => regenerate(dealId)} className="flex items-center gap-1 hover:underline flex-shrink-0"><Refresh2 size={14} /> Retry</button>
                 </div>
               )}
 
               {!busy && !error && messages.length > 0 && messages[messages.length - 1].role === "agent" && (
-                <button onClick={regenerate} className="flex items-center gap-1.5 text-[11px] text-outline hover:text-bronze transition-colors">
+                <button onClick={() => regenerate(dealId)} className="flex items-center gap-1.5 text-[11px] text-outline hover:text-bronze transition-colors">
                   <Refresh2 size={14} /> Regenerate
                 </button>
               )}
@@ -217,7 +221,7 @@ export default function AskChrimata() {
                 <Stop size={18} className="text-terra-light" variant="Bold" />
               </button>
             ) : (
-              <button onClick={() => { send(question); setQuestion(""); }} disabled={!question.trim()} className="w-10 h-10 rounded-full bg-bronze hover:bg-bronze-hover disabled:opacity-40 flex items-center justify-center flex-shrink-0 transition-colors">
+              <button onClick={() => { send(question, dealId); setQuestion(""); }} disabled={!question.trim()} className="w-10 h-10 rounded-full bg-bronze hover:bg-bronze-hover disabled:opacity-40 flex items-center justify-center flex-shrink-0 transition-colors">
                 <Send2 size={18} className="text-aegean-dark ml-0.5" variant="Bold" />
               </button>
             )}

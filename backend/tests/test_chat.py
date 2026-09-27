@@ -28,7 +28,7 @@ def test_chat_stream_persists_and_regenerates_without_duplicate_user_turn(client
     monkeypatch.setattr(agent_endpoint.hindsight_adapter, "recall", no_memory)
     monkeypatch.setattr(agent_endpoint.agent_service, "ask_stream", fake_stream)
 
-    session = client.post("/api/agent/sessions", json={"deal_id": "demo"}).json()
+    session = client.post("/api/agent/sessions", json={"deal_id": "northstar"}).json()
     first = client.post(f"/api/agent/sessions/{session['id']}/stream", json={"question": "Explain ARR"})
     assert first.status_code == 200
     events = _events(first)
