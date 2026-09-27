@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { fetchDocuments, registerDocument } from "../../../api/client";
-import type { DocumentRecord } from "../../../api/types";
-import { Button, DataTable, EmptyState, Input, PageHeader, Panel, StatusBadge } from "../../../components/dashboard/ui";
+import { fetchDocuments, registerDocument } from "../../../../api/client";
+import type { DocumentRecord } from "../../../../api/types";
+import { Button, DataTable, EmptyState, Input, PageHeader, Panel, StatusBadge } from "../../../../components/dashboard/ui";
+import { MarkdownMessage } from "../../../../components/dashboard/MarkdownMessage";
 
 export default function EvidenceVault() {
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
@@ -90,9 +91,29 @@ export default function EvidenceVault() {
     {success && <Panel className="p-4 text-sm text-tertiary" role="status">{success}</Panel>}
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
       <Panel className="overflow-hidden xl:col-span-7">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline p-5"><div><h2 className="font-headline text-xl text-on-surface">Registered Evidence</h2><p className="text-xs text-on-surface-variant">{documents.length} documents in the current deal</p></div><Input aria-label="Search evidence" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search documents" /></div>
-        {loading ? <EmptyState title="Loading evidence" /> : filtered.length ? <DataTable><thead><tr className="border-b border-hairline bg-accent-surface/40 font-mono text-outline"><th className="px-4 py-3">Document</th><th className="px-4 py-3">Date</th><th className="px-4 py-3 text-right">Action</th></tr></thead><tbody className="divide-y divide-hairline text-xs">{filtered.map((document) => <tr key={document.id} className={selectedId === document.id ? "bg-accent-surface" : ""}><td className="px-4 py-3"><div className="text-on-surface">{document.title}</div><div className="font-mono text-[10px] text-outline">{document.id}</div></td><td className="px-4 py-3 font-mono text-on-surface-variant">{document.document_date}</td><td className="px-4 py-3 text-right"><button onClick={() => openDocument(document.id)} className="text-bronze hover:underline">Open</button></td></tr>)}</tbody></DataTable> : <EmptyState title="No matching evidence" description="Try another search term or register a document." />}
-        {selected && <div className="border-t border-hairline p-5"><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h3 className="font-headline text-lg text-on-surface">{selected.title}</h3><p className="font-mono text-[10px] text-outline">{selected.id} · {selected.type} · {selected.document_date}</p></div><button onClick={() => openDocument(null)} className="text-xs text-on-surface-variant hover:text-on-surface">Close</button></div><pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-hairline bg-accent-surface p-4 font-mono text-xs text-on-surface-variant">{selected.content}</pre></div>}
+        {selected ? (
+          <div className="flex flex-col h-full">
+            <div className="border-b border-hairline p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div>
+                  <h3 className="font-headline text-lg text-on-surface">{selected.title}</h3>
+                  <p className="font-mono text-[10px] text-outline">{selected.id} · {selected.type} · {selected.document_date}</p>
+                </div>
+                <Button onClick={() => openDocument(null)} variant="secondary">Back to Evidence</Button>
+              </div>
+            </div>
+            <div className="p-5 bg-accent-surface overflow-auto flex-1">
+              <div className="prose prose-invert prose-sm max-w-none text-on-surface-variant">
+                <MarkdownMessage text={selected.content} />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline p-5"><div><h2 className="font-headline text-xl text-on-surface">Registered Evidence</h2><p className="text-xs text-on-surface-variant">{documents.length} documents in the current deal</p></div><Input aria-label="Search evidence" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search documents" /></div>
+            {loading ? <EmptyState title="Loading evidence" /> : filtered.length ? <DataTable><thead><tr className="border-b border-hairline bg-accent-surface/40 font-mono text-outline"><th className="px-4 py-3">Document</th><th className="px-4 py-3">Date</th><th className="px-4 py-3 text-right">Action</th></tr></thead><tbody className="divide-y divide-hairline text-xs">{filtered.map((document) => <tr key={document.id} className={selectedId === document.id ? "bg-accent-surface" : ""}><td className="px-4 py-3"><div className="text-on-surface">{document.title}</div><div className="font-mono text-[10px] text-outline">{document.id}</div></td><td className="px-4 py-3 font-mono text-on-surface-variant">{document.document_date}</td><td className="px-4 py-3 text-right"><button onClick={() => openDocument(document.id)} className="text-bronze hover:underline">Open</button></td></tr>)}</tbody></DataTable> : <EmptyState title="No matching evidence" description="Try another search term or register a document." />}
+          </>
+        )}
       </Panel>
       <Panel className="p-5 xl:col-span-5">
         <h2 className="font-headline text-xl text-on-surface">Register Evidence</h2>

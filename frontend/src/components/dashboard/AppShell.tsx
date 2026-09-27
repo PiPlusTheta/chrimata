@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useParams } from "next/navigation";
 import { useEffect } from "react";
 import { Category, Hierarchy, ArchiveBook, MessageProgramming, HambergerMenu, StatusUp, Bank, ArrowRight2, ArrowLeft2, CloseCircle } from "iconsax-react";
 
-import { DASHBOARD_NAV } from "../../routes";
-import { ROUTES } from "../../routes";
+import { getDashboardNav, ROUTES } from "../../routes";
 import { useDashboardStore } from "./store";
 
 // Map route icon strings to Iconsax components
@@ -19,6 +18,9 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const params = useParams<{ deal_id?: string }>();
+  const dealId = params?.deal_id || "demo";
+  const nav = getDashboardNav(dealId);
   const { menuOpen, setMenuOpen, isCollapsed, setIsCollapsed, summary, backendOnline, init } = useDashboardStore();
 
   useEffect(() => {
@@ -51,14 +53,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <nav className="flex flex-col gap-1 px-3" aria-label="Primary">
-            {DASHBOARD_NAV.map((item) => {
+            {nav.map((item) => {
               const active = pathname === item.href;
               return <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)} aria-current={active ? "page" : undefined} className={`dashboard-nav-link ${active ? "is-active" : ""}`}>
                 <span className="flex items-center gap-2.5">
                   <span className="flex items-center justify-center w-[18px] h-[18px]">{ICON_MAP[item.icon] || <StatusUp size={18} variant="Linear" color="currentColor" />}</span>
                   <span className="nav-label">{item.label}</span>
                 </span>
-                {item.href === ROUTES.queue && summary && <span className="nav-badge font-mono text-[10px] text-outline">{summary.open_issue_count}</span>}
+                {item.href === ROUTES.queue(dealId) && summary && <span className="nav-badge font-mono text-[10px] text-outline">{summary.open_issue_count}</span>}
               </Link>;
             })}
           </nav>
@@ -78,7 +80,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-3"><div className="hidden text-right sm:block"><div className="text-xs font-semibold leading-snug text-on-surface">{summary?.company_name ?? "Chrimata"}</div><div className="font-mono text-[10px] text-on-surface-variant">Diligence Workspace</div></div><span className="flex h-8 w-8 items-center justify-center rounded-full border border-accent-border bg-accent-surface text-secondary"><Bank size={17} variant="Linear" color="currentColor" /></span></div>
           </div>
         </header>
-        <main id="main-content" className="dashboard-content"><nav aria-label="Breadcrumb" className="dashboard-breadcrumb"><span>Dashboard</span><span aria-hidden="true">/</span><span aria-current="page">{DASHBOARD_NAV.find(item => item.href === pathname)?.label}</span></nav>{children}</main>
+        <main id="main-content" className="dashboard-content"><nav aria-label="Breadcrumb" className="dashboard-breadcrumb"><span>Dashboard</span><span aria-hidden="true">/</span><span aria-current="page">{nav.find(item => item.href === pathname)?.label}</span></nav>{children}</main>
       </div>
     </div>
   );

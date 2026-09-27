@@ -116,6 +116,25 @@
   body {
     overflow-x: hidden;
   }
+  
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-outline-dim);
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-outline);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-outline-dim) transparent;
+  }
 }
 
 /* Shared alignment rails for every full-width landing-page section. */

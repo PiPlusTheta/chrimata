@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import {
-  fetchSummary,
   fetchIssues,
   fetchClaims,
   fetchDocuments,
@@ -12,7 +12,8 @@ import {
   retainReview,
   resetDemo,
   injectJulyEvidence
-} from "../../../api/client";
+} from "../../../../api/client";
+import { useDashboardStore } from "../../../../components/dashboard/store";
 import {
   DocumentText,
   Refresh2,
@@ -27,14 +28,16 @@ import {
   Judge,
 } from "iconsax-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AnimatedBar } from "../../../components/TrajectoryChart";
-import { PageHeader, Panel, StatusBadge, Button, Input, Select, EmptyState } from "../../../components/dashboard/ui";
+import { AnimatedBar } from "../../../../components/TrajectoryChart";
+import { PageHeader, Panel, StatusBadge, Button, Input, Select, EmptyState } from "../../../../components/dashboard/ui";
 import Link from "next/link";
-import { ROUTES } from "../../../routes";
-import type { Claim, DocumentRecord, Issue, Summary } from "../../../api/types";
+import { ROUTES } from "../../../../routes";
+import type { Claim, DocumentRecord, Issue, Summary } from "../../../../api/types";
 
 export default function DiligenceWorkspace() {
-  const [summary, setSummary] = useState<Summary | null>(null);
+  const params = useParams<{ deal_id?: string }>();
+  const dealId = params?.deal_id || "demo";
+  const { summary } = useDashboardStore();
   const [issues, setIssues] = useState<Issue[]>([]);
   const [claims, setClaims] = useState<Claim[]>([]);
   const [docs, setDocs] = useState<DocumentRecord[]>([]);
@@ -56,10 +59,9 @@ export default function DiligenceWorkspace() {
   async function loadData() {
     setLoading(true);
     try {
-      const [sum, iss, cls, ds] = await Promise.all([
-        fetchSummary(), fetchIssues(), fetchClaims(), fetchDocuments()
+      const [iss, cls, ds] = await Promise.all([
+        fetchIssues(), fetchClaims(), fetchDocuments()
       ]);
-      setSummary(sum);
       setIssues(iss);
       setClaims(cls);
       setDocs(ds);
@@ -140,7 +142,7 @@ export default function DiligenceWorkspace() {
 
   return (
     <>
-<PageHeader eyebrow={<>Target Verification Profile {openIssueCount > 0 && <span className="text-terra-light">/ {openIssueCount} Open Issue{openIssueCount !== 1 ? "s" : ""}</span>}</>} title={<>{summary?.company_name} <StatusBadge>Synthetic Demo</StatusBadge></>} description={`${summary?.document_count} documents on record`} actions={<><Button onClick={handleExportReport}><DocumentDownload className="h-3.5 w-3.5" /> Export Report</Button><Button onClick={async () => { await injectJulyEvidence(); loadData(); }}><PlayCircle className="h-3.5 w-3.5" /> Add July Evidence</Button><Button variant="danger" onClick={handleReset}><Refresh2 className="h-3.5 w-3.5" /> Reset Demo</Button><Link href={ROUTES.ask} className="dashboard-button dashboard-button-primary">Ask Chrimata</Link></>} />
+<PageHeader eyebrow={<>Target Verification Profile {openIssueCount > 0 && <span className="text-terra-light">/ {openIssueCount} Open Issue{openIssueCount !== 1 ? "s" : ""}</span>}</>} title={<>{summary?.company_name} <StatusBadge>Synthetic Demo</StatusBadge></>} description={`${summary?.document_count} documents on record`} actions={<><Button onClick={handleExportReport}><DocumentDownload className="h-3.5 w-3.5" /> Export Report</Button><Button onClick={async () => { await injectJulyEvidence(); loadData(); }}><PlayCircle className="h-3.5 w-3.5" /> Add July Evidence</Button><Button variant="danger" onClick={handleReset}><Refresh2 className="h-3.5 w-3.5" /> Reset Demo</Button><Link href={ROUTES.ask(dealId)} className="dashboard-button dashboard-button-primary">Ask Chrimata</Link></>} />
 <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
           {/* LEFT */}
           <div className="xl:col-span-12 flex flex-col gap-8">

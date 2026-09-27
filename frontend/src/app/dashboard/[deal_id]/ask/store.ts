@@ -8,8 +8,8 @@ import {
   renameChatSession,
   deleteChatSession,
   streamChatMessage,
-} from '../../../api/client';
-import type { ChatMessage, ChatSession, Summary } from '../../../api/types';
+} from '../../../../api/client';
+import type { ChatMessage, ChatSession, Summary } from '../../../../api/types';
 
 export type StreamPhase = "idle" | "searching" | "solving" | "composing";
 

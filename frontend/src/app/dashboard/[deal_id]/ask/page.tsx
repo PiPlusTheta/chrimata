@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ThinkingOrb } from "thinking-orbs";
 import { Add, Trash, Send2, Edit2, TickSquare, CloseSquare, Refresh2, Stop } from "iconsax-react";
 import { useChatStore } from "./store";
-import { Button } from "../../../components/dashboard/ui";
-import { MarkdownMessage } from "../../../components/dashboard/MarkdownMessage";
+import { Button } from "../../../../components/dashboard/ui";
+import { MarkdownMessage } from "../../../../components/dashboard/MarkdownMessage";
 
 export default function AskChrimata() {
   const {
