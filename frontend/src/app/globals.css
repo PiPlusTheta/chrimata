@@ -1,26 +1,68 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  
+  --color-aegean-dark: #070C14;
+  --color-aegean-deep: #0B1220;
+  --color-aegean-surface: #10192B;
+  --color-aegean-card: #131E33;
+  --color-bronze: #C5A880;
+  --color-bronze-hover: #DFC29A;
+  --color-bronze-muted: #8A7456;
+  --color-olive-truth: #4A7C59;
+  --color-olive-light: #62A576;
+  --color-terra-alert: #B85D3B;
+  --color-terra-light: #DC7550;
+  --color-outline-dim: #202E47;
+  --color-outline-soft: #344566;
+  --color-text-primary: #F2F5FA;
+  --color-text-secondary: #9EABBF;
+  --color-text-muted: #60718A;
+  
+  --font-display: "Source Serif 4", serif;
+  --font-sans: "Hanken Grotesk", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+  
+  --letter-spacing-widest: 0.15em;
+  --letter-spacing-ultra: 0.22em;
+  
+  --shadow-glow-bronze: 0 0 25px -5px rgba(197, 168, 128, 0.15);
+  --shadow-glow-olive: 0 0 25px -5px rgba(74, 124, 89, 0.2);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    background-color: #070C14;
+    color: #F2F5FA;
+  }
+  body {
+    overflow-x: hidden;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.glass-panel {
+  background: rgba(11, 18, 32, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(197, 168, 128, 0.12);
+}
+
+.hover-glow {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-glow:hover {
+  border-color: rgba(197, 168, 128, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px -3px rgba(197, 168, 128, 0.12);
+}
+
+@keyframes pulseSoft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.15); }
+}
+.status-pulse {
+  animation: pulseSoft 3s ease-in-out infinite;
 }
