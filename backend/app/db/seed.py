@@ -72,7 +72,7 @@ def reset_db(db: Session) -> str:
 
     claims = [
         Claim(id="claim-arr-mar", metric="arr", original_text="Our current ARR is ₹2.4 crore.",
-              stated_amount_paise=2_400_000_00_00, as_of_date="2026-03-15",
+              stated_amount_paise=2_400_000_000, as_of_date="2026-03-15",
               definition="Annual Recurring Revenue as stated in the March pitch deck", status="claimed",
               sources=[sref("doc-deck-mar", "paragraph 1", "Our current ARR is ₹2.4 crore.")], created_at=_now()),
         Claim(id="claim-active-mrr-apr", metric="active_mrr", original_text="Active Monthly Recurring Revenue: ₹12 lakh.",

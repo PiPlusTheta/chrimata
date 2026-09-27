@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   fetchSummary,
   fetchIssues,
@@ -16,11 +17,9 @@ import {
   newSession,
   resetDemo,
   injectJulyEvidence
-} from "../../api/client";
+} from "../../../api/client";
 import {
-  AlertCircle,
   FileText,
-  MessageSquare,
   RefreshCw,
   Send,
   Database,
@@ -34,28 +33,37 @@ import {
   Download,
   ChevronDown,
   ChevronUp,
+  LayoutDashboard,
+  GitBranch,
+  Terminal,
+  Lock,
+  Gavel,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { AnimatedBar } from "../../../components/TrajectoryChart";
 
-// Tiny dependency-free markdown-lite renderer for Hindsight's reflect() output
-// (## headers, **bold**, - lists) — enough to make it readable without pulling in
-// a markdown library for one panel.
 function renderMarkdownLite(text: string) {
   const boldify = (s: string) => s.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
     part.startsWith("**") && part.endsWith("**")
-      ? <strong key={i} className="text-gray-100">{part.slice(2, -2)}</strong>
+      ? <strong key={i} className="text-on-surface">{part.slice(2, -2)}</strong>
       : part
   );
   return text.split("\n").map((line, i) => {
-    if (line.startsWith("### ")) return <div key={i} className="font-semibold text-gray-200 mt-2">{boldify(line.slice(4))}</div>;
-    if (line.startsWith("## ")) return <div key={i} className="font-bold text-gray-100 mt-2 text-sm">{boldify(line.slice(3))}</div>;
-    if (line.startsWith("- ")) return <div key={i} className="pl-3 text-gray-300">• {boldify(line.slice(2))}</div>;
+    if (line.startsWith("### ")) return <div key={i} className="font-semibold text-on-surface mt-2">{boldify(line.slice(4))}</div>;
+    if (line.startsWith("## ")) return <div key={i} className="font-bold text-on-surface mt-2 text-sm">{boldify(line.slice(3))}</div>;
+    if (line.startsWith("- ")) return <div key={i} className="pl-3 text-on-surface-variant">• {boldify(line.slice(2))}</div>;
     if (!line.trim()) return <div key={i} className="h-1" />;
-    return <div key={i} className="text-gray-300">{boldify(line)}</div>;
+    return <div key={i} className="text-on-surface-variant">{boldify(line)}</div>;
   });
 }
 
-export default function Dashboard() {
+const NAV = [
+  { href: "/dashboard", label: "Queue & Intake", icon: LayoutDashboard },
+  { href: "/dashboard/workspace", label: "Diligence Matrix", icon: GitBranch },
+  { href: "/dashboard/ingest", label: "Evidence Vault", icon: Terminal },
+];
+
+export default function DiligenceWorkspace() {
   const [summary, setSummary] = useState<any>(null);
   const [issues, setIssues] = useState<any[]>([]);
   const [claims, setClaims] = useState<any[]>([]);
@@ -70,22 +78,17 @@ export default function Dashboard() {
   const [retaining, setRetaining] = useState<Record<string, string>>({});
   const [savedReviewIds, setSavedReviewIds] = useState<Record<string, string>>({});
 
-  // Feature: source click-through — clicking a citation opens the real document.
   const [selectedDoc, setSelectedDoc] = useState<any | null>(null);
   const [selectedLocator, setSelectedLocator] = useState<string | null>(null);
   const [docLoading, setDocLoading] = useState(false);
 
-  // Feature: expandable calculation detail (formula/inputs/assumptions/sources).
   const [expandedCalc, setExpandedCalc] = useState<string | null>(null);
 
-  // Feature: Hindsight reflect panel — "what has this investigation learned".
   const [reflectText, setReflectText] = useState<string | null>(null);
   const [reflecting, setReflecting] = useState(false);
   const [reflectUnavailable, setReflectUnavailable] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   async function loadData() {
     setLoading(true);
@@ -151,11 +154,8 @@ export default function Dashboard() {
     setReflectUnavailable(null);
     try {
       const res = await agentReflect("demo");
-      if (res.available) {
-        setReflectText(res.text);
-      } else {
-        setReflectUnavailable(res.reason || "Hindsight has nothing to reflect on yet.");
-      }
+      if (res.available) setReflectText(res.text);
+      else setReflectUnavailable(res.reason || "Hindsight has nothing to reflect on yet.");
     } catch (e) {
       setReflectUnavailable("Error connecting to Hindsight.");
     }
@@ -188,10 +188,9 @@ export default function Dashboard() {
   const handleSubmitReview = async (issueId: string) => {
     const draft = reviewDrafts[issueId];
     if (!draft?.decision || !draft?.exp) return;
-
     setRetaining(prev => ({...prev, [issueId]: "saving"}));
     try {
-      const rev = await submitReview(issueId, draft.decision, draft.exp, "Nitesh");
+      const rev = await submitReview(issueId, draft.decision, draft.exp, "Analyst");
       setSavedReviewIds(prev => ({...prev, [issueId]: rev.id}));
       await attemptRetain(issueId, rev.id);
       loadData();
@@ -200,9 +199,6 @@ export default function Dashboard() {
     }
   };
 
-  // Retry only re-attempts Hindsight retention for the review already saved above —
-  // it must NOT call submitReview again, which would create a duplicate analyst
-  // review with the same decision/explanation.
   const attemptRetain = async (issueId: string, reviewId: string) => {
     setRetaining(prev => ({...prev, [issueId]: "retaining"}));
     try {
@@ -218,300 +214,309 @@ export default function Dashboard() {
     if (reviewId) attemptRetain(issueId, reviewId);
   };
 
-  if (loading && !summary) return <div className="flex h-screen items-center justify-center bg-gray-900 text-white font-mono">Loading Chrimata...</div>;
-  if (error) return <div className="p-8 text-red-500 bg-gray-900 h-screen">{error}</div>;
+  if (loading && !summary) return <div className="flex h-screen items-center justify-center bg-aegean-dark text-text-primary font-mono text-sm">Loading Chrimata...</div>;
+  if (error) return <div className="p-8 text-terra-alert bg-aegean-dark h-screen font-mono text-sm">{error}</div>;
+
+  const openIssueCount = issues.filter(i => i.status === "open" || i.status === "reopened").length;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-gray-200 font-sans selection:bg-indigo-500/30">
-      <header className="sticky top-0 z-10 border-b border-gray-800 bg-[#0A0A0A]/80 backdrop-blur-md px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <BrainCircuit className="text-indigo-400 w-6 h-6" />
-          <h1 className="text-xl font-medium tracking-tight text-white">Chrimata</h1>
-          <span className="px-2 py-1 bg-gray-800 rounded-md text-xs text-gray-400 ml-4 font-mono">Run: {summary?.run_id?.substring(0,6)}</span>
+    <div className="min-h-screen bg-aegean-dark text-text-primary font-sans">
+      {/* Sidebar */}
+      <aside className="fixed left-0 top-0 h-full w-16 hover:w-56 group bg-aegean-surface border-r border-outline-dim flex flex-col justify-between transition-all duration-300 z-50 overflow-hidden">
+        <div className="flex flex-col py-4">
+          <div className="px-4 mb-6 flex items-center gap-2.5">
+            <BrainCircuit className="w-5 h-5 text-bronze flex-shrink-0" />
+            <span className="font-display text-sm text-text-primary whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">Chrimata</span>
+          </div>
+          <nav className="flex flex-col gap-1 px-2">
+            {NAV.map(item => {
+              const Icon = item.icon;
+              const active = item.href === "/dashboard/workspace";
+              return (
+                <Link key={item.href} href={item.href}
+                  className={`flex items-center px-3 py-2.5 rounded-lg text-xs transition-all ${active ? "bg-accent-surface text-bronze border border-outline-dim" : "text-on-surface-variant hover:bg-accent-surface hover:text-on-surface"}`}>
+                  <Icon className="w-[18px] h-[18px] flex-shrink-0" />
+                  <span className="ml-3 font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={handleExportReport} className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-md text-sm transition-colors">
-            <Download className="w-4 h-4" /> Export Report
-          </button>
-          <button onClick={async () => { await injectJulyEvidence(); loadData(); }} className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-md text-sm transition-colors">
-            <PlayCircle className="w-4 h-4" /> Add July Evidence
-          </button>
-          <button onClick={handleReset} className="flex items-center gap-2 px-3 py-1.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-md text-sm transition-colors">
-            <RefreshCw className="w-4 h-4" /> Reset Demo
-          </button>
+        <div className="p-4 border-t border-outline-dim">
+          <div className="flex items-center gap-3">
+            <Lock className="w-4 h-4 text-outline flex-shrink-0" />
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              <div className="font-mono text-[9px] uppercase tracking-wider text-outline">Demo Integrity</div>
+              <div className="font-mono text-[10px] text-tertiary font-medium">Synthetic Data</div>
+            </div>
+          </div>
         </div>
-      </header>
+      </aside>
 
-      <main className="p-6 max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="pl-16">
+        {/* Header */}
+        <header className="sticky top-0 z-40 h-16 bg-aegean-dark/85 backdrop-blur-md border-b border-outline-dim flex items-center justify-between px-6">
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-[10px] text-on-surface-variant px-2 py-0.5 rounded bg-accent-surface border border-outline-dim">
+              RUN {summary?.run_id?.substring(0, 6)}
+            </span>
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent-surface border border-outline-dim">
+              <span className="w-1.5 h-1.5 rounded-full bg-tertiary status-pulse"></span>
+              <span className="font-mono text-[10px] text-on-surface-variant uppercase tracking-wide">Hindsight Active</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={handleExportReport} className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-surface hover:bg-outline-dim border border-outline-dim rounded-md text-xs text-on-surface-variant hover:text-on-surface transition-colors">
+              <Download className="w-3.5 h-3.5" /> Export Report
+            </button>
+            <button onClick={async () => { await injectJulyEvidence(); loadData(); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-surface hover:bg-outline-dim border border-outline-dim rounded-md text-xs text-on-surface-variant hover:text-on-surface transition-colors">
+              <PlayCircle className="w-3.5 h-3.5" /> Add July Evidence
+            </button>
+            <button onClick={handleReset} className="flex items-center gap-1.5 px-3 py-1.5 border border-terra-alert/30 text-terra-light hover:bg-terra-alert/10 rounded-md text-xs transition-colors">
+              <RefreshCw className="w-3.5 h-3.5" /> Reset Demo
+            </button>
+          </div>
+        </header>
 
-        {/* Left Column: Context & Evidence */}
-        <div className="lg:col-span-8 flex flex-col gap-6">
+        {/* Workspace title */}
+        <div className="px-8 py-6 border-b border-outline-dim">
+          <div className="font-mono text-[10px] uppercase tracking-wider text-outline mb-1.5">
+            Target Verification Profile {openIssueCount > 0 && <span className="text-terra-light font-semibold">/ {openIssueCount} Open Issue{openIssueCount !== 1 ? "s" : ""}</span>}
+          </div>
+          <h1 className="font-display text-3xl text-text-primary font-light tracking-tight flex items-center gap-3">
+            {summary?.company_name}
+            <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-accent-surface border border-outline-dim text-on-surface-variant uppercase tracking-widest">Synthetic Demo</span>
+          </h1>
+          <p className="text-xs text-on-surface-variant mt-2">{summary?.document_count} documents on record</p>
+        </div>
 
-          {/* Overview Metrics */}
-          <section className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2"><Database className="w-4 h-4"/> Metrics Overview ({summary?.company_name})</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {summary?.metrics?.map((m: any) => {
-                const isOpen = expandedCalc === m.id;
+        <div className="p-8 max-w-[1700px] mx-auto grid grid-cols-1 xl:grid-cols-12 gap-8">
+          {/* LEFT */}
+          <div className="xl:col-span-8 flex flex-col gap-8">
+            {/* Metrics */}
+            <section>
+              <h2 className="font-mono text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-4 flex items-center gap-2">
+                <Database className="w-4 h-4" /> Calculated Metrics
+              </h2>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {summary?.metrics?.map((m: any) => {
+                  const isOpen = expandedCalc === m.id;
+                  const statusColor = m.status === "conditional" ? "text-terra-light border-terra-alert/20 bg-terra-alert/10"
+                    : m.status === "inferred" ? "text-bronze border-bronze/20 bg-bronze/10"
+                    : "text-tertiary border-tertiary/20 bg-tertiary/10";
+                  return (
+                    <div key={m.id} className="bg-aegean-card rounded-xl border border-outline-dim p-4 hover-glow">
+                      <div className="text-xs text-outline font-mono mb-1">{m.metric.replace(/_/g, ' ')}</div>
+                      <div className="font-display text-2xl text-text-primary mb-2">{m.amount_paise ? formatPaise(m.amount_paise) : (m.months ? `${m.months} mo` : 'N/A')}</div>
+                      <button onClick={() => setExpandedCalc(isOpen ? null : m.id)} className={`flex items-center gap-1 text-[9px] font-mono px-1.5 py-0.5 rounded border uppercase ${statusColor}`}>
+                        {m.status} {isOpen ? <ChevronUp className="w-3 h-3"/> : <ChevronDown className="w-3 h-3"/>}
+                      </button>
+                      <AnimatePresence>
+                        {isOpen && (
+                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mt-2 text-[11px] text-on-surface-variant space-y-1 overflow-hidden">
+                            <div><span className="text-outline">formula:</span> <code className="text-bronze">{m.formula}</code></div>
+                            {m.assumptions?.map((a: string, i: number) => <div key={i} className="text-outline">• {a}</div>)}
+                            <div className="flex flex-wrap gap-1 pt-1">
+                              {m.sources?.map((s: any, i: number) => (
+                                <button key={i} onClick={() => openSource(s.document_id, s.locator)} className="flex items-center gap-1 px-1.5 py-0.5 bg-bronze/10 border border-bronze/20 text-bronze rounded hover:bg-bronze/20 transition-colors">
+                                  <LinkIcon className="w-2.5 h-2.5" /> {s.document_id}
+                                </button>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Real animated comparison bars — claimed vs calculated, never fabricated */}
+            <section className="bg-aegean-card rounded-xl border border-outline-dim p-6">
+              <h3 className="font-display text-lg text-text-primary mb-1">Claimed vs. Calculated ARR</h3>
+              <p className="font-mono text-[10px] text-outline mb-5">March deck assertion vs. April-ledger-derived live ARR — exact figures, no fabricated trend</p>
+              {(() => {
+                const claimArr = claims.find((c: any) => c.id === "claim-arr-mar");
+                const calcArr = summary?.metrics?.find((m: any) => m.id === "calc-live-arr-apr");
+                const claimed = claimArr?.stated_amount_paise || 0;
+                const calculated = calcArr?.amount_paise || 0;
+                const maxVal = Math.max(claimed, calculated) || 1;
                 return (
-                  <div key={m.id} className="bg-gray-800/40 p-4 rounded-lg border border-gray-700/50">
-                    <div className="text-xs text-gray-400 mb-1">{m.metric.replace(/_/g, ' ')}</div>
-                    <div className="text-xl font-medium text-white mb-2">{m.amount_paise ? formatPaise(m.amount_paise) : (m.months ? `${m.months} mo` : 'N/A')}</div>
-                    <button
-                      onClick={() => setExpandedCalc(isOpen ? null : m.id)}
-                      className="flex items-center gap-1 text-[10px] text-gray-500 font-mono bg-gray-900 px-2 py-1 rounded hover:bg-gray-800 transition-colors"
-                    >
-                      {m.status} {isOpen ? <ChevronUp className="w-3 h-3"/> : <ChevronDown className="w-3 h-3"/>}
-                    </button>
-                    <AnimatePresence>
-                      {isOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="mt-2 text-[11px] text-gray-400 space-y-1 overflow-hidden"
-                        >
-                          <div><span className="text-gray-500">formula:</span> <code className="text-indigo-300">{m.formula}</code></div>
-                          {m.assumptions?.map((a: string, i: number) => (
-                            <div key={i} className="text-gray-500">• {a}</div>
-                          ))}
-                          <div className="flex flex-wrap gap-1 pt-1">
-                            {m.sources?.map((s: any, i: number) => (
-                              <button
-                                key={i}
-                                onClick={() => openSource(s.document_id, s.locator)}
-                                className="flex items-center gap-1 px-1.5 py-0.5 bg-indigo-900/30 border border-indigo-500/30 text-indigo-300 rounded hover:bg-indigo-900/60 transition-colors"
-                              >
-                                <LinkIcon className="w-2.5 h-2.5" /> {s.document_id}
-                              </button>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                  <div className="flex flex-col gap-4">
+                    <AnimatedBar label="Claimed (March deck)" displayValue={claimed ? formatPaise(claimed) : "n/a"} fraction={claimed / maxVal} color="#B85D3B" sublabel={claimArr?.original_text} />
+                    <AnimatedBar label="Calculated (April ledger, annualised)" displayValue={calculated ? formatPaise(calculated) : "n/a"} fraction={calculated / maxVal} color="#4A7C59" sublabel={calcArr?.formula} />
                   </div>
                 );
-              })}
-            </div>
-          </section>
+              })()}
+            </section>
 
-          {/* Issues & Claims */}
-          <section className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2"><AlertCircle className="w-4 h-4"/> Claim Investigation</h2>
-            <div className="flex flex-col gap-4">
-              {issues.map(iss => {
-                const claim = claims.find(c => c.id === iss.claim_id);
-                const draft = reviewDrafts[iss.id] || {decision: 'accept_explanation', exp: ''};
-                const rStatus = retaining[iss.id];
-
-                return (
-                  <div key={iss.id} className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-5">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-lg font-medium text-white">{iss.question}</h3>
-                          <span className={`px-2 py-0.5 text-xs rounded-full whitespace-nowrap ${iss.status === 'resolved' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}`}>
+            {/* Issues */}
+            <section>
+              <h2 className="font-mono text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-4 flex items-center gap-2">
+                <Gavel className="w-4 h-4 text-terra-light" /> Claim Veracity Investigation
+              </h2>
+              <div className="flex flex-col gap-4">
+                {issues.map(iss => {
+                  const claim = claims.find(c => c.id === iss.claim_id);
+                  const draft = reviewDrafts[iss.id] || {decision: 'accept_explanation', exp: ''};
+                  const rStatus = retaining[iss.id];
+                  const resolved = iss.status === 'resolved' || iss.status === 'explained';
+                  return (
+                    <div key={iss.id} className={`bg-aegean-card border border-outline-dim rounded-xl p-5 relative overflow-hidden ${resolved ? 'opacity-80 hover:opacity-100 transition-opacity' : ''}`}>
+                      <div className={`absolute left-0 top-0 bottom-0 w-1 ${resolved ? 'bg-tertiary' : 'bg-terra-alert'}`}></div>
+                      <div className="pl-3">
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <h3 className="font-display text-lg text-text-primary">{iss.question}</h3>
+                          <span className={`px-2 py-0.5 text-[9px] font-mono rounded-full whitespace-nowrap uppercase border ${resolved ? 'bg-tertiary/10 border-tertiary/30 text-tertiary' : 'bg-terra-alert/10 border-terra-alert/30 text-terra-light'}`}>
                             {iss.status}
                           </span>
                         </div>
-                        {claim && (
-                          <div className="text-sm text-gray-400">
-                            Claim: <span className="text-gray-200">{claim.original_text}</span> ({claim.as_of_date})
-                          </div>
-                        )}
-                        {/* Source click-through: evidence_for/evidence_against/claim.sources all open the real document */}
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {claim?.sources?.map((s: any, i: number) => (
-                            <button key={`cs-${i}`} onClick={() => openSource(s.document_id, s.locator)}
-                              className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-gray-700/40 text-gray-300 rounded hover:bg-gray-700 transition-colors">
-                              <LinkIcon className="w-2.5 h-2.5" /> {s.document_id}
-                            </button>
-                          ))}
+                        {claim && <div className="text-sm text-on-surface-variant">Claim: <span className="text-text-primary italic">"{claim.original_text}"</span> ({claim.as_of_date})</div>}
+                        <div className="flex flex-wrap gap-1.5 mt-3">
                           {iss.evidence_for?.map((s: any, i: number) => (
-                            <button key={`ef-${i}`} onClick={() => openSource(s.document_id, s.locator)}
-                              className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-green-900/20 text-green-300 rounded hover:bg-green-900/40 transition-colors">
+                            <button key={`ef-${i}`} onClick={() => openSource(s.document_id, s.locator)} className="flex items-center gap-1 px-2 py-1 text-[10px] font-mono bg-tertiary/10 border border-tertiary/20 text-tertiary rounded hover:bg-tertiary/20 transition-colors">
                               <LinkIcon className="w-2.5 h-2.5" /> for: {s.document_id}
                             </button>
                           ))}
                           {iss.evidence_against?.map((s: any, i: number) => (
-                            <button key={`ea-${i}`} onClick={() => openSource(s.document_id, s.locator)}
-                              className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-red-900/20 text-red-300 rounded hover:bg-red-900/40 transition-colors">
+                            <button key={`ea-${i}`} onClick={() => openSource(s.document_id, s.locator)} className="flex items-center gap-1 px-2 py-1 text-[10px] font-mono bg-terra-alert/10 border border-terra-alert/20 text-terra-light rounded hover:bg-terra-alert/20 transition-colors">
                               <LinkIcon className="w-2.5 h-2.5" /> against: {s.document_id}
                             </button>
                           ))}
                         </div>
                       </div>
-                    </div>
 
-                    {/* Analyst Review Form */}
-                    {iss.status !== 'resolved' && (
-                      <div className="mt-4 pt-4 border-t border-gray-700/50">
-                        <h4 className="text-xs text-gray-400 mb-2">Analyst Review</h4>
-                        <div className="flex gap-2 mb-3">
-                          <select
-                            className="bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm focus:border-indigo-500 outline-none"
-                            value={draft.decision}
-                            onChange={(e) => setReviewDrafts({...reviewDrafts, [iss.id]: {...draft, decision: e.target.value}})}
-                          >
-                            <option value="accept_explanation">Accept Explanation</option>
-                            <option value="request_evidence">Request Evidence</option>
-                            <option value="dispute">Dispute</option>
-                            <option value="resolve">Resolve</option>
-                          </select>
-                          <input
-                            type="text"
-                            placeholder="Explanation..."
-                            className="flex-1 bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm focus:border-indigo-500 outline-none"
-                            value={draft.exp}
-                            onChange={(e) => setReviewDrafts({...reviewDrafts, [iss.id]: {...draft, exp: e.target.value}})}
-                          />
-                          <button
-                            onClick={() => handleSubmitReview(iss.id)}
-                            className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-                          >
-                            Save
-                          </button>
-                        </div>
-                        {rStatus && (
-                          <div className="text-xs flex items-center gap-1 mt-2 text-gray-400">
-                            Status: <span className={rStatus === 'retained' ? 'text-green-400' : (rStatus === 'failed' ? 'text-red-400' : 'text-amber-400')}>{rStatus}</span>
-                            {rStatus === 'failed' && <button className="ml-2 text-indigo-400 hover:underline text-[10px]" onClick={() => handleRetryRetain(iss.id)}>Retry</button>}
+                      {iss.status !== 'resolved' && (
+                        <div className="mt-4 pt-4 border-t border-outline-dim pl-3">
+                          <h4 className="font-mono text-[10px] uppercase text-outline mb-2">Analyst Judgment</h4>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <select className="bg-accent-surface border border-outline-dim rounded-md px-3 py-2 text-sm text-text-primary focus:border-bronze outline-none sm:w-48"
+                              value={draft.decision} onChange={(e) => setReviewDrafts({...reviewDrafts, [iss.id]: {...draft, decision: e.target.value}})}>
+                              <option value="accept_explanation">Accept Explanation</option>
+                              <option value="request_evidence">Request Evidence</option>
+                              <option value="dispute">Dispute</option>
+                              <option value="resolve">Resolve</option>
+                            </select>
+                            <input type="text" placeholder="Explanation..." className="flex-1 bg-accent-surface border border-outline-dim rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-outline focus:border-bronze outline-none"
+                              value={draft.exp} onChange={(e) => setReviewDrafts({...reviewDrafts, [iss.id]: {...draft, exp: e.target.value}})} />
+                            <button onClick={() => handleSubmitReview(iss.id)} className="bg-bronze text-aegean-dark hover:bg-bronze-hover px-4 py-2 rounded-md text-sm font-medium transition-colors">Save</button>
                           </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              {issues.length === 0 && <div className="text-sm text-gray-500 py-4 text-center">No open issues.</div>}
-            </div>
-          </section>
-
-          {/* Evidence Timeline */}
-          <section className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2"><Clock className="w-4 h-4"/> Evidence Timeline</h2>
-            <div className="flex flex-col gap-3">
-              {docs.map(d => (
-                <button key={d.id} onClick={() => openSource(d.id)} className="text-left flex gap-4 items-center bg-gray-800/20 p-3 rounded-lg border border-gray-800/50 hover:bg-gray-800/50 transition-colors">
-                  <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-4 h-4 text-gray-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm font-medium text-gray-200 truncate">{d.title}</span>
-                      <span className="text-xs text-gray-500 font-mono" title="document date">{d.document_date}</span>
+                          {rStatus && (
+                            <div className="text-xs flex items-center gap-1 mt-2 text-on-surface-variant">
+                              Status: <span className={rStatus === 'retained' ? 'text-tertiary' : (rStatus === 'failed' ? 'text-terra-light' : 'text-bronze')}>{rStatus}</span>
+                              {rStatus === 'failed' && <button className="ml-2 text-bronze hover:underline text-[10px]" onClick={() => handleRetryRetain(iss.id)}>Retry</button>}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <div className="text-xs text-gray-400 truncate">{d.content}</div>
-                    <div className="text-[10px] text-gray-600" title="ingested at">ingested {d.ingested_at}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </section>
+                  );
+                })}
+                {issues.length === 0 && <div className="text-sm text-outline py-4 text-center">No open issues.</div>}
+              </div>
+            </section>
 
-        </div>
-
-        {/* Right Column: Agent Console */}
-        <div className="lg:col-span-4 flex flex-col gap-4">
-          <section className="flex-1 bg-gray-900/80 border border-gray-800 rounded-xl flex flex-col h-[calc(100vh-100px)] sticky top-24 shadow-2xl shadow-indigo-900/10 overflow-hidden">
-            <div className="p-4 border-b border-gray-800 bg-gray-900 flex justify-between items-center">
-              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-2">
-                <BrainCircuit className="w-4 h-4 text-indigo-400"/> Hindsight Agent
+            {/* Timeline */}
+            <section className="bg-aegean-card rounded-xl border border-outline-dim p-5">
+              <h2 className="font-mono text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-4 flex items-center gap-2">
+                <Clock className="w-4 h-4" /> Evidence Timeline
               </h2>
-              <div className="flex gap-2">
-                <button onClick={handleAgentAnalyze} className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded transition-colors">Analyze</button>
-                <button onClick={handleReflect} disabled={reflecting} className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider px-2 py-1 bg-purple-900/50 border border-purple-500/30 text-purple-300 hover:bg-purple-900 rounded transition-colors disabled:opacity-50">
-                  <Sparkles className="w-3 h-3" /> {reflecting ? "..." : "Reflect"}
-                </button>
-                <button onClick={handleNewSession} className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 bg-indigo-900/50 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-900 rounded transition-colors">New Session</button>
-              </div>
-            </div>
-
-            {(reflectText || reflectUnavailable) && (
-              <div className="p-3 border-b border-gray-800 bg-purple-950/20 max-h-48 overflow-y-auto">
-                <div className="text-[10px] uppercase tracking-wider text-purple-300 font-bold mb-1 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> Hindsight Reflection {reflectUnavailable && "(unavailable)"}
-                </div>
-                <div className="text-xs space-y-0.5">{reflectText ? renderMarkdownLite(reflectText) : reflectUnavailable}</div>
-              </div>
-            )}
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              <AnimatePresence>
-                {chat.map((msg, i) => (
-                  <motion.div
-                    initial={{opacity: 0, y: 10}}
-                    animate={{opacity: 1, y: 0}}
-                    key={i}
-                    className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
-                  >
-                    <div className={`max-w-[90%] px-4 py-3 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-gray-800 border border-gray-700 text-gray-200 rounded-bl-none'}`}>
-                      {msg.text}
+              <div className="flex flex-col gap-2 max-h-[420px] overflow-y-auto pr-1">
+                {docs.map(d => (
+                  <button key={d.id} onClick={() => openSource(d.id)} className="text-left flex gap-3 items-center bg-aegean-dark/60 p-2.5 rounded-lg border border-outline-dim hover:border-outline-soft transition-colors">
+                    <div className="w-8 h-8 rounded bg-accent-surface flex items-center justify-center flex-shrink-0 text-outline">
+                      <FileText className="w-4 h-4" />
                     </div>
-                    {msg.context && msg.context.length > 0 && (
-                      <div className="mt-2 text-xs bg-indigo-900/20 border border-indigo-500/20 p-2 rounded-lg max-w-[90%]">
-                        <div className="font-semibold text-indigo-300 mb-1 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Recalled Memory</div>
-                        {msg.context.map((c, j) => (
-                          <div key={j} className="text-indigo-200/70 italic">&quot;{c.summary}&quot;</div>
-                        ))}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center mb-0.5">
+                        <span className="text-xs font-medium text-text-primary truncate">{d.title}</span>
+                        <span className="text-[10px] text-outline font-mono">{d.document_date}</span>
                       </div>
-                    )}
-                  </motion.div>
+                      <div className="text-[10px] text-on-surface-variant truncate">{d.content}</div>
+                    </div>
+                  </button>
                 ))}
-              </AnimatePresence>
-              {chat.length === 0 && (
-                <div className="h-full flex items-center justify-center text-center p-6 text-gray-500 text-sm">
-                  Agent is ready. Run Analyze or start asking questions.
+              </div>
+            </section>
+          </div>
+
+          {/* RIGHT: Agent */}
+          <div className="xl:col-span-4 flex flex-col">
+            <section className="bg-aegean-card border border-outline-dim rounded-xl flex flex-col h-[calc(100vh-140px)] sticky top-24 overflow-hidden">
+              <div className="px-4 py-3 border-b border-outline-dim flex justify-between items-center">
+                <h2 className="font-mono text-xs font-semibold text-bronze uppercase tracking-wider flex items-center gap-2">
+                  <BrainCircuit className="w-4 h-4"/> Hindsight Agent
+                </h2>
+                <div className="flex gap-1.5">
+                  <button onClick={handleAgentAnalyze} className="text-[9px] uppercase font-bold tracking-wider px-2 py-1 bg-accent-surface hover:bg-outline-dim text-on-surface-variant rounded transition-colors">Analyze</button>
+                  <button onClick={handleReflect} disabled={reflecting} className="flex items-center gap-1 text-[9px] uppercase font-bold tracking-wider px-2 py-1 bg-bronze/15 border border-bronze/30 text-bronze hover:bg-bronze/25 rounded transition-colors disabled:opacity-50">
+                    <Sparkles className="w-3 h-3" /> {reflecting ? "..." : "Reflect"}
+                  </button>
+                  <button onClick={handleNewSession} className="text-[9px] uppercase font-bold tracking-wider px-2 py-1 bg-tertiary/15 border border-tertiary/30 text-tertiary hover:bg-tertiary/25 rounded transition-colors">New Session</button>
+                </div>
+              </div>
+
+              {(reflectText || reflectUnavailable) && (
+                <div className="p-3 border-b border-outline-dim bg-bronze/5 max-h-48 overflow-y-auto">
+                  <div className="text-[10px] uppercase tracking-wider text-bronze font-bold mb-1 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" /> Hindsight Reflection {reflectUnavailable && "(unavailable)"}
+                  </div>
+                  <div className="text-xs space-y-0.5">{reflectText ? renderMarkdownLite(reflectText) : reflectUnavailable}</div>
                 </div>
               )}
-            </div>
 
-            <div className="p-4 border-t border-gray-800 bg-gray-900/80">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={question}
-                  onChange={e => setQuestion(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleAsk()}
-                  placeholder="Ask the investigation agent..."
-                  className="flex-1 bg-gray-800 border border-gray-700 rounded-full px-4 py-2 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
-                />
-                <button onClick={handleAsk} className="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center flex-shrink-0 transition-colors">
-                  <Send className="w-4 h-4 text-white ml-0.5" />
-                </button>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <AnimatePresence>
+                  {chat.map((msg, i) => (
+                    <motion.div initial={{opacity: 0, y: 10}} animate={{opacity: 1, y: 0}} key={i} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                      <div className={`max-w-[90%] px-4 py-3 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-bronze text-aegean-dark rounded-br-none' : 'bg-accent-surface border border-outline-dim text-text-primary rounded-bl-none'}`}>
+                        {msg.text}
+                      </div>
+                      {msg.context && msg.context.length > 0 && (
+                        <div className="mt-2 text-xs bg-tertiary/10 border border-tertiary/20 p-2 rounded-lg max-w-[90%]">
+                          <div className="font-semibold text-tertiary mb-1 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Recalled Memory</div>
+                          {msg.context.map((c, j) => <div key={j} className="text-tertiary/80 italic">&quot;{c.summary}&quot;</div>)}
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                {chat.length === 0 && <div className="h-full flex items-center justify-center text-center p-6 text-outline text-sm">Agent is ready. Run Analyze or start asking questions.</div>}
               </div>
-            </div>
-          </section>
+
+              <div className="p-4 border-t border-outline-dim">
+                <div className="flex gap-2">
+                  <input type="text" value={question} onChange={e => setQuestion(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAsk()}
+                    placeholder="Ask the investigation agent..." className="flex-1 bg-accent-surface border border-outline-dim rounded-full px-4 py-2 text-sm text-text-primary focus:border-bronze outline-none transition-all" />
+                  <button onClick={handleAsk} className="w-10 h-10 rounded-full bg-bronze hover:bg-bronze-hover flex items-center justify-center flex-shrink-0 transition-colors">
+                    <Send className="w-4 h-4 text-aegean-dark ml-0.5" />
+                  </button>
+                </div>
+              </div>
+            </section>
+          </div>
         </div>
+      </div>
 
-      </main>
-
-      {/* Document viewer modal — the actual point of "source click-through": every
-          citation across the dashboard opens the real, original document content here. */}
       <AnimatePresence>
         {(selectedDoc || docLoading) && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-6"
-            onClick={() => { setSelectedDoc(null); setSelectedLocator(null); }}
-          >
-            <motion.div
-              initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-gray-900 border border-gray-700 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col shadow-2xl"
-            >
-              <div className="p-4 border-b border-gray-800 flex justify-between items-start">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-6"
+            onClick={() => { setSelectedDoc(null); setSelectedLocator(null); }}>
+            <motion.div initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }} onClick={(e) => e.stopPropagation()}
+              className="bg-aegean-card border border-outline-dim rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col shadow-2xl">
+              <div className="p-4 border-b border-outline-dim flex justify-between items-start">
                 <div>
-                  <div className="text-xs text-gray-500 font-mono">{selectedDoc?.id}</div>
-                  <h3 className="text-lg font-medium text-white">{docLoading ? "Loading..." : selectedDoc?.title}</h3>
-                  {selectedDoc?.document_date && <div className="text-xs text-gray-500">Document date: {selectedDoc.document_date} · Ingested: {selectedDoc.ingested_at}</div>}
-                  {selectedLocator && <div className="text-xs text-indigo-400 mt-1">Cited locator: {selectedLocator}</div>}
+                  <div className="text-xs text-outline font-mono">{selectedDoc?.id}</div>
+                  <h3 className="text-lg font-display text-text-primary">{docLoading ? "Loading..." : selectedDoc?.title}</h3>
+                  {selectedDoc?.document_date && <div className="text-xs text-outline">Document date: {selectedDoc.document_date} · Ingested: {selectedDoc.ingested_at}</div>}
+                  {selectedLocator && <div className="text-xs text-bronze mt-1">Cited locator: {selectedLocator}</div>}
                 </div>
-                <button onClick={() => { setSelectedDoc(null); setSelectedLocator(null); }} className="text-gray-500 hover:text-white">
+                <button onClick={() => { setSelectedDoc(null); setSelectedLocator(null); }} className="text-outline hover:text-text-primary">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-4 overflow-y-auto text-sm text-gray-300 whitespace-pre-wrap font-mono">
+              <div className="p-4 overflow-y-auto text-sm text-on-surface-variant whitespace-pre-wrap font-mono">
                 {docLoading ? "Fetching document..." : selectedDoc?.content}
               </div>
             </motion.div>

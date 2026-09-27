@@ -1,6 +1,22 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { fetchSummary } from "../../api/client";
 
 export default function DashboardQueue() {
+  const [summary, setSummary] = useState<any>(null);
+  useEffect(() => { fetchSummary().then(setSummary).catch(() => {}); }, []);
+
+  const formatPaise = (paise?: number) => {
+    if (!paise) return "n/a";
+    if (paise >= 1000000000) return `₹${(paise / 1000000000).toFixed(2)} Cr`;
+    if (paise >= 10000000) return `₹${(paise / 10000000).toFixed(2)} L`;
+    return `₹${(paise / 100).toFixed(0)}`;
+  };
+  const arrMetric = summary?.metrics?.find((m: any) => m.id === "calc-live-arr-apr");
+  const runwayMetric = summary?.metrics?.find((m: any) => m.id === "calc-runway-base");
+
   return (
     <>
 {/*  Institutional Review Queue & Diligence Registry  */}
@@ -95,7 +111,7 @@ export default function DashboardQueue() {
 <header className="fixed top-0 left-64 right-0 h-16 bg-root-bg/80 backdrop-blur-md z-40 border-b border-hairline flex items-center justify-between px-8">
 <div className="flex items-center gap-4">
 <div className="flex items-center gap-3">
-<img alt="Chrimata Primary Horizontal Logo" className="h-6 w-auto object-contain opacity-95" src="https://lh3.googleusercontent.com/aida/AEtjO1VNs73aXMcjADJPNn2zFyJxI4CR17WPW8hCFunb_2coRnVRSU4CKX50GmZB4Kq63t78VlDe_2to9JJNaiNanUPqmJGNLdfDCkRtBB_BWXtYsrpjOQBxqBog3nKAqK22C6xy3U3TBSqBHMTTUMBRXc3LPZiWETFqGId-nNa40jSEeLWzsm8RAI6mCafy7WPus_WcYBhBNblKwQVlSuq2seJk5ZCrzhT4yTxbiFT70Jup9Rfljw3WbMnj0Fk"/>
+<span className="font-display text-lg tracking-tight text-on-surface font-light">Chrimata</span>
 <span className="h-4 w-[1px] bg-accent-border hidden sm:block"></span>
 <span className="font-headline text-lg tracking-tight text-on-surface font-light hidden lg:inline">Institutional Terminal</span>
 </div>
@@ -166,79 +182,79 @@ export default function DashboardQueue() {
 {/*  METRIC 1  */}
 <div className="bg-card-bg rounded-xl border border-hairline p-5 flex flex-col justify-between hover:border-hairline-light transition-all shadow-sm relative overflow-hidden group">
 <div className="flex items-center justify-between text-outline">
-<span className="font-mono text-[10px] uppercase tracking-wider">Active Engagements</span>
+<span className="font-mono text-[10px] uppercase tracking-wider">Documents on Record</span>
 <span className="material-symbols-outlined text-[18px] group-hover:text-primary transition-colors">folder_special</span>
 </div>
 <div className="my-4 flex items-baseline justify-between">
-<span className="font-headline text-4xl text-on-surface font-light">14</span>
+<span className="font-headline text-4xl text-on-surface font-light">{summary?.document_count ?? "—"}</span>
 <span className="font-mono text-[10px] text-tertiary px-2 py-0.5 rounded-full bg-tertiary/10 border border-tertiary/20">
-              100% SLA PASS
+              LIVE
             </span>
 </div>
 <div className="pt-3 border-t border-hairline flex items-center justify-between text-xs text-on-surface-variant">
 <span className="flex items-center gap-1 text-tertiary font-mono text-[11px]">
-<span className="material-symbols-outlined text-[13px]">trending_up</span> +3 this cycle
+<span className="material-symbols-outlined text-[13px]">description</span> Northstar Ops
             </span>
-<span className="font-mono text-[11px] text-outline">Deals in flight</span>
+<span className="font-mono text-[11px] text-outline">Single active deal</span>
 </div>
 </div>
 {/*  METRIC 2  */}
 <div className="bg-card-bg rounded-xl border border-hairline p-5 flex flex-col justify-between hover:border-hairline-light transition-all shadow-sm relative overflow-hidden group">
 <div className="flex items-center justify-between text-outline">
-<span className="font-mono text-[10px] uppercase tracking-wider">Discrepancies Under Audit</span>
+<span className="font-mono text-[10px] uppercase tracking-wider">Open Issues</span>
 <span className="material-symbols-outlined text-[18px] text-error group-hover:scale-110 transition-transform">warning</span>
 </div>
 <div className="my-4 flex items-baseline justify-between">
 <div className="flex items-baseline gap-2">
-<span className="font-headline text-4xl text-error font-light">6</span>
+<span className="font-headline text-4xl text-error font-light">{summary?.open_issue_count ?? "—"}</span>
 <span className="font-mono text-xs text-outline">flagged</span>
 </div>
 <span className="font-mono text-[10px] text-error px-2 py-0.5 rounded-full bg-error-dark border border-error/30 uppercase font-semibold">
-              2 Material
+              LIVE
             </span>
 </div>
 <div className="pt-3 border-t border-hairline flex items-center justify-between text-xs text-on-surface-variant">
 <span className="text-error font-mono text-[11px] flex items-center gap-1">
 <span className="material-symbols-outlined text-[13px]">gavel</span> Forensic review
             </span>
-<span className="font-mono text-[11px] text-outline">4 Technical</span>
+<span className="font-mono text-[11px] text-outline">Northstar Ops</span>
 </div>
 </div>
 {/*  METRIC 3  */}
 <div className="bg-card-bg rounded-xl border border-hairline p-5 flex flex-col justify-between hover:border-hairline-light transition-all shadow-sm relative overflow-hidden group">
 <div className="flex items-center justify-between text-outline">
-<span className="font-mono text-[10px] uppercase tracking-wider">Total Capital Evaluated</span>
+<span className="font-mono text-[10px] uppercase tracking-wider">Live Annualised ARR</span>
 <span className="material-symbols-outlined text-[18px] text-secondary group-hover:scale-110 transition-transform">account_balance</span>
 </div>
 <div className="my-4 flex items-baseline justify-between">
-<span className="font-headline text-4xl text-secondary font-light">$420M</span>
+<span className="font-headline text-4xl text-secondary font-light">{formatPaise(arrMetric?.amount_paise)}</span>
 <span className="font-mono text-[10px] text-on-surface-variant px-2 py-0.5 rounded-full bg-accent-surface border border-hairline">
-              Tier-1 Syndicate
+              {arrMetric?.status ?? "—"}
             </span>
 </div>
 <div className="pt-3 border-t border-hairline flex items-center justify-between text-xs text-on-surface-variant">
-<span className="font-mono text-[11px] text-outline">4 Jurisdictions</span>
-<span className="font-mono text-[11px] text-on-surface">₹3,480 Cr Base</span>
+<span className="font-mono text-[11px] text-outline">active_mrr × 12</span>
+<span className="font-mono text-[11px] text-on-surface">April ledger</span>
 </div>
 </div>
 {/*  METRIC 4  */}
 <div className="bg-card-bg rounded-xl border border-hairline p-5 flex flex-col justify-between hover:border-hairline-light transition-all shadow-sm relative overflow-hidden group">
 <div className="flex items-center justify-between text-outline">
-<span className="font-mono text-[10px] uppercase tracking-wider">Reconciliation Velocity</span>
+<span className="font-mono text-[10px] uppercase tracking-wider">Cash Runway</span>
 <span className="material-symbols-outlined text-[18px] text-tertiary group-hover:scale-110 transition-transform">bolt</span>
 </div>
 <div className="my-4 flex items-baseline justify-between">
 <div className="flex items-baseline gap-1">
-<span className="font-headline text-4xl text-tertiary font-light">4.2</span>
-<span className="font-mono text-xs text-tertiary">hrs</span>
+<span className="font-headline text-4xl text-tertiary font-light">{runwayMetric?.months ?? "—"}</span>
+<span className="font-mono text-xs text-tertiary">mo</span>
 </div>
 <span className="font-mono text-[10px] text-tertiary px-2 py-0.5 rounded-full bg-tertiary/10 border border-tertiary/20">
-              3.1x Benchmark
+              {runwayMetric?.status ?? "—"}
             </span>
 </div>
 <div className="pt-3 border-t border-hairline flex items-center justify-between text-xs text-on-surface-variant">
-<span className="font-mono text-[11px] text-tertiary">Mean SLA Latency</span>
-<span className="font-mono text-[11px] text-outline">Target: &lt; 6.0h</span>
+<span className="font-mono text-[11px] text-tertiary">cash / monthly_net_burn</span>
+<span className="font-mono text-[11px] text-outline">Constant burn</span>
 </div>
 </div>
 </section>
@@ -454,21 +470,21 @@ export default function DashboardQueue() {
 <td className="py-3.5 px-4 font-body text-xs text-on-surface">Sarah Jenkins</td>
 <td className="py-3.5 px-4 text-right">
 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-error-dark border border-error/30 text-error text-[11px] font-semibold">
-<span className="w-1.5 h-1.5 rounded-full bg-error"></span> 68% ALERT
+<span className="w-1.5 h-1.5 rounded-full bg-error status-pulse"></span> {(summary?.open_issue_count ?? 0) > 0 ? "ALERT" : "CLEAR"}
                     </span>
 </td>
 <td className="py-3.5 px-4 text-error">
 <span className="flex items-center gap-1">
 <span className="material-symbols-outlined text-[14px]">flag</span>
-<span>2 Unresolved</span>
+<span>{summary?.open_issue_count ?? "—"} Unresolved</span>
 </span>
 </td>
 <td className="py-3.5 px-4">
 <div className="flex items-center gap-2.5">
 <div className="w-20 h-1.5 rounded-full bg-accent-surface overflow-hidden">
-<div className="h-full bg-secondary rounded-full" style={{ width: "45%" }}></div>
+<div className="h-full bg-secondary rounded-full" style={{ width: "100%" }}></div>
 </div>
-<span className="text-[11px] text-on-surface-variant">12 Docs</span>
+<span className="text-[11px] text-on-surface-variant">{summary?.document_count ?? "—"} Docs</span>
 </div>
 </td>
 <td className="py-3.5 px-4 text-right text-on-surface-variant">2026-08-15</td>
@@ -480,13 +496,13 @@ export default function DashboardQueue() {
 </td>
 </tr>
 {/*  ROW 2: KINETIX BIO (VERIFIED)  */}
-<tr className="hover:bg-accent-surface/50 transition-colors cursor-pointer deal-row" data-company="Kinetix Bio">
+<tr className="opacity-40 grayscale-[0.4] pointer-events-none deal-row" data-company="Kinetix Bio" aria-disabled="true">
 <td className="py-3.5 px-4 text-center">
 <input className="w-3.5 h-3.5 bg-card-bg border border-accent-border rounded cursor-pointer accent-secondary" type="checkbox"/>
 </td>
 <td className="py-3.5 px-4">
 <div className="font-body font-semibold text-on-surface text-sm flex items-center gap-2">
-<span>Kinetix Bio</span>
+<span>Kinetix Bio</span><span className="font-mono text-[8px] px-1 py-0.5 rounded bg-outline/20 text-outline uppercase tracking-wide">Illustrative</span>
 <span className="font-mono text-[10px] text-outline px-1.5 py-0.5 rounded bg-accent-surface border border-hairline">KB-S</span>
 </div>
 </td>
@@ -523,13 +539,13 @@ export default function DashboardQueue() {
 </td>
 </tr>
 {/*  ROW 3: AETHER ROBOTICS (PENDING)  */}
-<tr className="hover:bg-accent-surface/50 transition-colors cursor-pointer deal-row" data-company="Aether Robotics">
+<tr className="opacity-40 grayscale-[0.4] pointer-events-none deal-row" data-company="Aether Robotics" aria-disabled="true">
 <td className="py-3.5 px-4 text-center">
 <input className="w-3.5 h-3.5 bg-card-bg border border-accent-border rounded cursor-pointer accent-secondary" type="checkbox"/>
 </td>
 <td className="py-3.5 px-4">
 <div className="font-body font-semibold text-on-surface text-sm flex items-center gap-2">
-<span>Aether Robotics</span>
+<span>Aether Robotics</span><span className="font-mono text-[8px] px-1 py-0.5 rounded bg-outline/20 text-outline uppercase tracking-wide">Illustrative</span>
 <span className="font-mono text-[10px] text-outline px-1.5 py-0.5 rounded bg-accent-surface border border-hairline">AR-B</span>
 </div>
 </td>
@@ -566,13 +582,13 @@ export default function DashboardQueue() {
 </td>
 </tr>
 {/*  ROW 4: VEDA FINANCIAL (VERIFIED)  */}
-<tr className="hover:bg-accent-surface/50 transition-colors cursor-pointer deal-row" data-company="Veda Financial">
+<tr className="opacity-40 grayscale-[0.4] pointer-events-none deal-row" data-company="Veda Financial" aria-disabled="true">
 <td className="py-3.5 px-4 text-center">
 <input className="w-3.5 h-3.5 bg-card-bg border border-accent-border rounded cursor-pointer accent-secondary" type="checkbox"/>
 </td>
 <td className="py-3.5 px-4">
 <div className="font-body font-semibold text-on-surface text-sm flex items-center gap-2">
-<span>Veda Financial</span>
+<span>Veda Financial</span><span className="font-mono text-[8px] px-1 py-0.5 rounded bg-outline/20 text-outline uppercase tracking-wide">Illustrative</span>
 <span className="font-mono text-[10px] text-outline px-1.5 py-0.5 rounded bg-accent-surface border border-hairline">VF-IP</span>
 </div>
 </td>
@@ -609,13 +625,13 @@ export default function DashboardQueue() {
 </td>
 </tr>
 {/*  ROW 5: HELIOS COMPUTE (ALERT)  */}
-<tr className="hover:bg-accent-surface/50 transition-colors cursor-pointer deal-row" data-company="Helios Compute">
+<tr className="opacity-40 grayscale-[0.4] pointer-events-none deal-row" data-company="Helios Compute" aria-disabled="true">
 <td className="py-3.5 px-4 text-center">
 <input className="w-3.5 h-3.5 bg-card-bg border border-accent-border rounded cursor-pointer accent-secondary" type="checkbox"/>
 </td>
 <td className="py-3.5 px-4">
 <div className="font-body font-semibold text-on-surface text-sm flex items-center gap-2">
-<span>Helios Compute</span>
+<span>Helios Compute</span><span className="font-mono text-[8px] px-1 py-0.5 rounded bg-outline/20 text-outline uppercase tracking-wide">Illustrative</span>
 <span className="font-mono text-[10px] text-outline px-1.5 py-0.5 rounded bg-accent-surface border border-hairline">HC-A</span>
 </div>
 </td>

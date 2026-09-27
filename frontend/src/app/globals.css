@@ -1,9 +1,16 @@
 @import "tailwindcss";
 
+:root {
+  --background: #070C14;
+  --foreground: #F2F5FA;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  
+
+  --spacing-gutter-desktop: 2rem;
+
   --color-aegean-dark: #070C14;
   --color-aegean-deep: #0B1220;
   --color-aegean-surface: #10192B;
@@ -30,6 +37,69 @@
   
   --shadow-glow-bronze: 0 0 25px -5px rgba(197, 168, 128, 0.15);
   --shadow-glow-olive: 0 0 25px -5px rgba(74, 124, 89, 0.2);
+
+  /* Semantic aliases (Material-style naming) used by the dashboard pages —
+     all resolve to the same Aegean palette above so the dashboard and the
+     landing page always share one visual language, never a second palette. */
+  --color-root-bg: var(--color-aegean-dark);
+  --color-card-bg: var(--color-aegean-card);
+  --color-accent-surface: var(--color-aegean-surface);
+  --color-accent-border: var(--color-outline-dim);
+  --color-hairline: var(--color-outline-dim);
+  --color-hairline-light: var(--color-outline-soft);
+  --color-outline: var(--color-text-muted);
+  --color-on-surface: var(--color-text-primary);
+  --color-on-surface-variant: var(--color-text-secondary);
+
+  --color-primary: var(--color-bronze);
+  --color-primary-container: var(--color-bronze-muted);
+  --color-primary-fixed-dim: var(--color-bronze-muted);
+
+  --color-secondary: var(--color-bronze);
+  --color-secondary-dark: var(--color-aegean-dark);
+  --color-secondary-container: var(--color-bronze-muted);
+
+  --color-tertiary: var(--color-olive-truth);
+  --color-tertiary-container: var(--color-olive-light);
+  --color-tertiary-dark: #2f5039;
+
+  --color-error: var(--color-terra-alert);
+  --color-error-container: var(--color-terra-light);
+  --color-error-dark: #6e3722;
+
+  --color-surface-container-highest: var(--color-aegean-card);
+  --color-surface-container-high: var(--color-aegean-card);
+  --color-surface-container-low: var(--color-aegean-surface);
+  --color-surface-container-lowest: var(--color-aegean-deep);
+
+  --font-headline: var(--font-display);
+  --font-body: var(--font-sans);
+  --font-tabular-data: var(--font-mono);
+
+  --text-body-md: 0.875rem;
+  --text-body-sm: 0.75rem;
+
+  --spacing-space-xs: 0.5rem;
+  --spacing-space-sm: 0.75rem;
+  --spacing-space-md: 1rem;
+  --spacing-space-lg: 1.5rem;
+
+  --color-surface: var(--color-aegean-surface);
+  --color-surface-container: var(--color-aegean-card);
+  --color-outline-variant: var(--color-outline-soft);
+  --color-on-secondary: var(--color-aegean-dark);
+
+  --font-body-md: var(--font-sans);
+  --font-body-sm: var(--font-sans);
+  --font-code-sm: var(--font-mono);
+  --font-headline-md: var(--font-display);
+  --font-label-caps: var(--font-mono);
+  --font-title-sm: var(--font-display);
+
+  --text-code-sm: 0.75rem;
+  --text-headline-md: 1.5rem;
+  --text-label-caps: 0.6875rem;
+  --text-title-sm: 1.125rem;
 }
 
 @layer base {
@@ -65,4 +135,70 @@
 }
 .status-pulse {
   animation: pulseSoft 3s ease-in-out infinite;
+}
+
+/* Referenced across the dashboard pages but previously undefined — these
+   elements looked static despite the class names implying motion. */
+@keyframes dashFlow {
+  to { stroke-dashoffset: -24; }
+}
+.animate-dash-flow {
+  stroke-dasharray: 6 6;
+  animation: dashFlow 1.2s linear infinite;
+}
+.animate-line {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: drawLine 1.6s ease-out forwards;
+}
+@keyframes drawLine {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes nodePing {
+  0% { transform: scale(0.8); opacity: 0.9; }
+  75%, 100% { transform: scale(1.8); opacity: 0; }
+}
+.node-ping {
+  animation: nodePing 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  transform-origin: center;
+}
+
+@keyframes telemetryGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(74, 124, 89, 0.5); }
+  50% { box-shadow: 0 0 0 6px rgba(74, 124, 89, 0); }
+}
+.telemetry-glow {
+  animation: telemetryGlow 2.4s ease-in-out infinite;
+}
+
+@keyframes scannerSweep {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(220%); }
+}
+.scanner-sweep {
+  animation: scannerSweep 3.5s ease-in-out infinite;
+}
+
+@keyframes scanbeam {
+  0% { transform: translateY(-100%); opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translateY(600%); opacity: 0; }
+}
+.animate-scanbeam {
+  animation: scanbeam 4s ease-in-out infinite;
+}
+
+@keyframes waveFlow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.animate-wave-flow {
+  background-size: 200% 100%;
+  animation: waveFlow 3s linear infinite;
+}
+.animate-wave-flow-slow {
+  background-size: 200% 100%;
+  animation: waveFlow 6s linear infinite;
 }

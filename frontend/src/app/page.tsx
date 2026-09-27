@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { TrajectoryChart, AmbientGlow } from '../components/TrajectoryChart';
 
 export default function LandingPage() {
   const [activeTab, setActiveTab] = useState('financials');
@@ -71,8 +72,7 @@ export default function LandingPage() {
       </header>
 
       <section className="relative flex items-center justify-center px-6 lg:px-12 py-16 lg:py-20 overflow-hidden">
-        {/* @ts-ignore */}
-        <webgl-shader src="{{DATA:ANIMATION:ANIMATION_13}}" className="absolute inset-0 w-full h-full pointer-events-none opacity-45"></webgl-shader>
+        <AmbientGlow />
         <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-aegean-dark/30 via-transparent to-aegean-dark"></div>
         <div className="relative z-10 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           <div className="lg:col-span-7 flex flex-col items-start text-left">
@@ -316,8 +316,15 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="w-full">
-                {/* @ts-ignore */}
-                <animated-svg src="{{DATA:ANIMATION:ANIMATION_14}}" className="w-full h-64 my-4"></animated-svg>
+                <TrajectoryChart
+                  height={256}
+                  yLabels={["₹0.5 Cr", "₹1.5 Cr", "₹2.5 Cr"]}
+                  xLabels={["Feb", "Mar", "Apr", "May", "Jun", "Jul"]}
+                  series={[
+                    { label: "Deck Assertion", color: "#B85D3B", dashed: true, points: [2.1, 2.4, 2.5, 2.6, 2.7, 2.8] },
+                    { label: "Reconciled Ground Truth", color: "#4A7C59", points: [1.1, 1.2, 1.44, 1.5, 1.55, 1.6] },
+                  ]}
+                />
               </div>
             </div>
             <div className="p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 bg-aegean-dark/50" style={{ opacity: isVerifying ? 0.35 : 1, transition: 'opacity 0.3s' }}>

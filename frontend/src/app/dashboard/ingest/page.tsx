@@ -86,8 +86,7 @@ export default function DashboardIngest() {
 {/*  Header  */}
 <header className="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/85 backdrop-blur-md z-40 border-b border-[#1E3154] flex items-center justify-between px-gutter-desktop">
 <div className="flex items-center gap-space-md">
-<img alt="Chrimata Primary Horizontal Logo" className="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1VNs73aXMcjADJPNn2zFyJxI4CR17WPW8hCFunb_2coRnVRSU4CKX50GmZB4Kq63t78VlDe_2to9JJNaiNanUPqmJGNLdfDCkRtBB_BWXtYsrpjOQBxqBog3nKAqK22C6xy3U3TBSqBHMTTUMBRXc3LPZiWETFqGId-nNa40jSEeLWzsm8RAI6mCafy7WPus_WcYBhBNblKwQVlSuq2seJk5ZCrzhT4yTxbiFT70Jup9Rfljw3WbMnj0Fk"/>
-<span className="font-headline-md text-headline-md tracking-tight text-on-surface hidden xl:inline">Chrimata Institutional Terminal</span>
+<span className="font-headline-md text-headline-md tracking-tight text-on-surface">Chrimata Institutional Terminal</span>
 <div className="h-4 w-[1px] bg-[#1E3154] hidden md:block"></div>
 <div className="hidden md:flex items-center gap-space-xs px-2.5 py-1 bg-surface-container-low border border-[#1E3154] rounded-md">
 <span className="w-1.5 h-1.5 bg-tertiary rounded-full"></span>
@@ -119,6 +118,15 @@ export default function DashboardIngest() {
 {/*  Main Workspace Area  */}
 <main className="relative pt-20 bg-background min-h-screen w-full px-gutter-desktop py-space-lg pb-16">
 <div className="max-w-[1600px] mx-auto flex flex-col gap-6">
+<div className="w-full bg-bronze/10 border border-bronze/30 rounded-xl p-4 flex items-center gap-3">
+<span className="material-symbols-outlined text-bronze text-[20px]">info</span>
+<p className="text-xs text-on-surface-variant">
+  This terminal illustrates a future multi-format ingestion pipeline. For this Phase 1 demo, real document + claim
+  ingestion (which can auto-open a new issue when a claim conflicts with prior evidence) runs from the
+  <Link href="/dashboard/workspace" className="text-bronze hover:underline mx-1">Diligence Matrix</Link>
+  via &quot;Add July Evidence&quot;, backed by the live <code className="text-bronze">POST /api/deals/demo/documents</code> endpoint.
+</p>
+</div>
 {/*  Top Session Telemetry & Attestation Bar  */}
 <div className="w-full bg-surface-container-lowest/80 border border-[#1E3154] rounded-xl p-space-md shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-space-md backdrop-blur-sm">
 <div className="flex flex-wrap items-center gap-space-md sm:gap-space-lg">
