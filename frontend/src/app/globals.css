@@ -118,6 +118,18 @@
   }
 }
 
+/* Shared alignment rails for every full-width landing-page section. */
+.landing-container {
+  width: min(calc(100% - 3rem), 80rem);
+  margin-inline: auto;
+}
+
+@media (min-width: 64rem) {
+  .landing-container {
+    width: min(calc(100% - 6rem), 80rem);
+  }
+}
+
 .glass-panel {
   background: rgba(11, 18, 32, 0.72);
   backdrop-filter: blur(16px);
