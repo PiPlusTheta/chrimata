@@ -1,9 +1,9 @@
 {
-  "id": "rev_1",
-  "issue_id": "issue_1",
-  "decision": "explained",
-  "explanation": "Founder clarified March deck ARR included contracted future and pipeline.",
-  "reviewed_at": "2026-09-27T10:05:00Z",
-  "reviewer": "analyst",
-  "memory_status": "retained"
+    "id": "rev_4d4b20a8",
+    "issue_id": "issue-arr-apr",
+    "decision": "accept_explanation",
+    "explanation": "Founder clarified the March ARR figure combined active, contracted, and pipeline revenue.",
+    "reviewed_at": "2026-09-27T13:35:16.188413Z",
+    "reviewer": "analyst",
+    "memory_status": "pending"
 }

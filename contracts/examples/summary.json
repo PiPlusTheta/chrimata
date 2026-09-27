@@ -1,0 +1,190 @@
+{
+    "deal_id": "demo",
+    "company_name": "Northstar Ops",
+    "synthetic": true,
+    "run_id": "run_ae28ef6d9ccf",
+    "document_count": 15,
+    "open_issue_count": 2,
+    "metrics": [
+        {
+            "id": "calc-live-arr-apr",
+            "metric": "live_annualised_arr",
+            "amount_paise": 1440000000,
+            "months": null,
+            "as_of_date": "2026-04-01",
+            "status": "calculated",
+            "formula": "active_mrr \u00d7 12",
+            "inputs": [
+                {
+                    "label": "active_mrr",
+                    "amount_paise": 120000000,
+                    "source": {
+                        "document_id": "doc-ledger-apr",
+                        "locator": "Active Monthly Recurring Revenue line",
+                        "quote": null
+                    }
+                }
+            ],
+            "assumptions": [
+                "Active subscriptions remain constant for 12 months.",
+                "Excludes signed-but-not-yet-active contracts and unsigned pipeline."
+            ],
+            "sources": [
+                {
+                    "document_id": "doc-ledger-apr",
+                    "locator": "Active Monthly Recurring Revenue line",
+                    "quote": null
+                }
+            ]
+        },
+        {
+            "id": "calc-runway-base",
+            "metric": "simple_cash_runway",
+            "amount_paise": null,
+            "months": "4",
+            "as_of_date": "2026-04-01",
+            "status": "calculated",
+            "formula": "cash / monthly_net_burn",
+            "inputs": [
+                {
+                    "label": "cash",
+                    "amount_paise": 720000000,
+                    "source": {
+                        "document_id": "doc-cash-q1",
+                        "locator": "Current Cash line",
+                        "quote": null
+                    }
+                },
+                {
+                    "label": "monthly_net_burn",
+                    "amount_paise": 180000000,
+                    "source": {
+                        "document_id": "doc-cash-q1",
+                        "locator": "Monthly Net Burn line",
+                        "quote": null
+                    }
+                }
+            ],
+            "assumptions": [
+                "Constant monthly burn rate",
+                "No new financing"
+            ],
+            "sources": [
+                {
+                    "document_id": "doc-cash-q1",
+                    "locator": "Current Cash line",
+                    "quote": null
+                },
+                {
+                    "document_id": "doc-cash-q1",
+                    "locator": "Monthly Net Burn line",
+                    "quote": null
+                }
+            ]
+        },
+        {
+            "id": "calc-runway-scenario",
+            "metric": "simple_cash_runway",
+            "amount_paise": null,
+            "months": "10",
+            "as_of_date": "2026-06-30",
+            "status": "conditional",
+            "formula": "(cash + proposed_financing) / monthly_net_burn",
+            "inputs": [
+                {
+                    "label": "cash",
+                    "amount_paise": 720000000,
+                    "source": {
+                        "document_id": "doc-cash-q1",
+                        "locator": "Current Cash line",
+                        "quote": null
+                    }
+                },
+                {
+                    "label": "proposed_financing",
+                    "amount_paise": 1080000000,
+                    "source": {
+                        "document_id": "doc-term-sheet-jun",
+                        "locator": "Amount line",
+                        "quote": null
+                    }
+                },
+                {
+                    "label": "monthly_net_burn",
+                    "amount_paise": 180000000,
+                    "source": {
+                        "document_id": "doc-cash-q1",
+                        "locator": "Monthly Net Burn line",
+                        "quote": null
+                    }
+                }
+            ],
+            "assumptions": [
+                "Constant monthly burn rate",
+                "Assumes the proposed financing closes on the draft term sheet's terms \u2014 not yet signed"
+            ],
+            "sources": [
+                {
+                    "document_id": "doc-cash-q1",
+                    "locator": "Current Cash line",
+                    "quote": null
+                },
+                {
+                    "document_id": "doc-term-sheet-jun",
+                    "locator": "Amount line",
+                    "quote": null
+                },
+                {
+                    "document_id": "doc-cash-q1",
+                    "locator": "Monthly Net Burn line",
+                    "quote": null
+                }
+            ]
+        },
+        {
+            "id": "calc-mrr-post-churn-jul",
+            "metric": "mrr_after_reported_churn",
+            "amount_paise": 130000000,
+            "months": null,
+            "as_of_date": "2026-07-05",
+            "status": "inferred",
+            "formula": "reported_mrr - churned_mrr",
+            "inputs": [
+                {
+                    "label": "reported_mrr",
+                    "amount_paise": 170000000,
+                    "source": {
+                        "document_id": "doc-update-jul",
+                        "locator": "paragraph 1",
+                        "quote": "Our current MRR is \u20b917 lakh."
+                    }
+                },
+                {
+                    "label": "churned_mrr",
+                    "amount_paise": 40000000,
+                    "source": {
+                        "document_id": "doc-churn-notice-jul",
+                        "locator": "paragraph 1",
+                        "quote": null
+                    }
+                }
+            ],
+            "assumptions": [
+                "Reported MRR predates the churn notice",
+                "Not a confirmed figure \u2014 requires the July billing ledger to verify no offsetting new revenue landed in the same period"
+            ],
+            "sources": [
+                {
+                    "document_id": "doc-update-jul",
+                    "locator": "paragraph 1",
+                    "quote": "Our current MRR is \u20b917 lakh."
+                },
+                {
+                    "document_id": "doc-churn-notice-jul",
+                    "locator": "paragraph 1",
+                    "quote": null
+                }
+            ]
+        }
+    ]
+}

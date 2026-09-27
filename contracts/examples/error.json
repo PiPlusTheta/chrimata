@@ -1,0 +1,6 @@
+{
+    "error": {
+        "code": "resolution_not_ready",
+        "message": "issue-arr-apr can only be resolved after an accept_explanation review has been recorded"
+    }
+}
