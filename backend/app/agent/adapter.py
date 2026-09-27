@@ -87,6 +87,20 @@ class HindsightAdapter:
             print(f"Hindsight recall failed: {e}")
             return []
 
+    async def reflect(self, bank_id: str, query: str) -> Optional[str]:
+        """Hindsight's `reflect` synthesizes a markdown answer from consolidated
+        memory (as opposed to `recall`, which returns raw matching memory items).
+        Returns None if Hindsight is unavailable or the call fails — callers must
+        treat that as "no reflection available", never fabricate one."""
+        if not self.is_available():
+            return None
+        try:
+            res = await self.client.areflect(bank_id=bank_id, query=query, budget="low")
+            return getattr(res, "text", None)
+        except Exception as e:
+            print(f"Hindsight reflect failed: {e}")
+            return None
+
     async def clear_bank(self, bank_id: str):
         if not self.is_available():
             return

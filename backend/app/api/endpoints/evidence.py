@@ -4,11 +4,14 @@ from typing import List
 from datetime import datetime, timezone
 import uuid
 
+from decimal import Decimal
+
 from app.db.session import get_db
 from app.models.domain import Document, Claim, Issue, Review, DemoRun
 from app.schemas.domain import (
     DocumentSchema, ClaimSchema, IssueSchema, ReviewSchema, ReviewCreate,
     CalculationSchema, SummarySchema, MemoryStatusUpdate, SourceRef,
+    DocumentIngestRequest, DocumentIngestResponse,
 )
 from app.db.seed import reset_db, event, introduce_july_evidence
 from app.services.evidence import EvidenceService
@@ -106,16 +109,98 @@ def get_document(document_id: str, db: Session = Depends(get_db)):
     return doc
 
 
-@router.post("/deals/demo/documents", response_model=DocumentSchema)
-def add_document(doc: DocumentSchema, db: Session = Depends(get_db)):
-    """Controlled new-document ingestion for the live demo (e.g. a July billing ledger)."""
-    if db.query(Document).filter(Document.id == doc.id).first():
-        _err(409, "already_exists", f"Document {doc.id} already exists")
-    db_doc = Document(**doc.model_dump())
+DISCREPANCY_THRESHOLD = Decimal("0.05")  # >5% difference on the same metric triggers an issue
+
+
+def _amount_display(amount_paise) -> str:
+    if amount_paise is None:
+        return "n/a"
+    return f"₹{(Decimal(amount_paise) / Decimal(100)):,.0f}"
+
+
+def _maybe_open_issue_for_new_claim(db: Session, new_claim: Claim, doc_title: str) -> Issue | None:
+    """Deterministic conflict detection: if a newly-ingested claim's amount differs
+    materially from the most recent prior claim on the same metric, opens a new
+    Issue automatically. This generalizes what used to be a hardcoded July-only
+    flow to any document a judge/analyst introduces live — Niloy's evidence engine
+    decides whether a new issue is opened, never the agent (per CONTRACTS.md §5)."""
+    if new_claim.stated_amount_paise is None:
+        return None  # only numeric claims are compared; qualitative (stated_months) claims are skipped
+
+    prior = (
+        db.query(Claim)
+        .filter(Claim.metric == new_claim.metric, Claim.id != new_claim.id, Claim.stated_amount_paise.isnot(None))
+        .order_by(Claim.as_of_date.desc())
+        .first()
+    )
+    if not prior:
+        return None
+
+    old, new = Decimal(prior.stated_amount_paise), Decimal(new_claim.stated_amount_paise)
+    if old == 0:
+        return None
+    delta_ratio = abs(new - old) / old
+    if delta_ratio <= DISCREPANCY_THRESHOLD:
+        return None
+
+    if db.query(Issue).filter(Issue.claim_id == new_claim.id).first():
+        return None  # already have an issue for this claim (re-ingestion guard)
+
+    issue_id = f"issue-auto-{uuid.uuid4().hex[:8]}"
+    new_source = SourceRef(**new_claim.sources[0]).model_dump()
+    prior_source = SourceRef(**prior.sources[0]).model_dump()
+    issue = Issue(
+        id=issue_id, claim_id=new_claim.id, status="open",
+        question=(
+            f"'{doc_title}' states {new_claim.metric} of {_amount_display(new_claim.stated_amount_paise)} "
+            f"as of {new_claim.as_of_date}, but an earlier claim on the same metric ({prior.original_text!r}, "
+            f"as of {prior.as_of_date}) stated {_amount_display(prior.stated_amount_paise)} "
+            f"({delta_ratio * 100:.0f}% difference). Is there a discrepancy?"
+        ),
+        evidence_for=[new_source], evidence_against=[prior_source],
+        history=[event("opened", f"Auto-opened: {new_claim.metric} claim changed by {delta_ratio * 100:.0f}% on new evidence.", [new_claim.sources[0]["document_id"], prior.sources[0]["document_id"]])],
+        suggested_request="Ask for clarification or an updated source document reconciling the two figures.",
+    )
+    db.add(issue)
+    return issue
+
+
+@router.post("/deals/demo/documents", response_model=DocumentIngestResponse)
+def add_document(payload: DocumentIngestRequest, db: Session = Depends(get_db)):
+    """Controlled new-document ingestion for the live demo. Optionally accepts
+    `claims` to create alongside the document — any claim whose amount differs
+    materially from a prior claim on the same metric automatically opens a new
+    Issue (see _maybe_open_issue_for_new_claim)."""
+    if db.query(Document).filter(Document.id == payload.id).first():
+        _err(409, "already_exists", f"Document {payload.id} already exists")
+
+    doc_fields = payload.model_dump(exclude={"claims"})
+    db_doc = Document(**doc_fields)
     db.add(db_doc)
     db.commit()
     db.refresh(db_doc)
-    return db_doc
+
+    claims_created, issues_opened = [], []
+    for c in payload.claims:
+        if db.query(Claim).filter(Claim.id == c.id).first():
+            _err(409, "already_exists", f"Claim {c.id} already exists")
+        db_claim = Claim(
+            id=c.id, metric=c.metric, original_text=c.original_text,
+            stated_amount_paise=c.stated_amount_paise, stated_months=c.stated_months,
+            as_of_date=c.as_of_date, definition=c.definition, status=c.status,
+            sources=[{"document_id": payload.id, "locator": c.locator, "quote": c.quote}],
+        )
+        db.add(db_claim)
+        db.commit()
+        db.refresh(db_claim)
+        claims_created.append(db_claim.id)
+
+        issue = _maybe_open_issue_for_new_claim(db, db_claim, payload.title)
+        if issue:
+            db.commit()
+            issues_opened.append(issue.id)
+
+    return DocumentIngestResponse(document=db_doc, claims_created=claims_created, issues_opened=issues_opened)
 
 
 @router.get("/deals/demo/claims", response_model=List[ClaimSchema])
@@ -226,6 +311,52 @@ def update_memory_status(review_id: str, status_update: MemoryStatusUpdate, db: 
 def reset_demo(db: Session = Depends(get_db)):
     run_id = reset_db(db)
     return {"message": "Demo reset successfully", "run_id": run_id}
+
+
+@router.get("/deals/demo/report")
+def get_report(db: Session = Depends(get_db)):
+    """A deterministic (no LLM) markdown diligence report: every claim, every issue
+    with its full review history, and the current calculations — the same DB facts
+    the rest of the API exposes, just assembled into one downloadable document."""
+    from fastapi.responses import PlainTextResponse
+
+    claims = db.query(Claim).order_by(Claim.as_of_date).all()
+    issues = db.query(Issue).all()
+    calcs = _calculations(db)
+    run_id = _run_id(db)
+
+    lines = [f"# Chrimata Diligence Report — Northstar Ops", "", f"_Run: {run_id}_", ""]
+
+    lines.append("## Calculations")
+    for c in calcs:
+        value = _amount_display(c.amount_paise) if c.amount_paise is not None else f"{c.months} months"
+        lines.append(f"- **{c.metric}** ({c.status}): {value} — `{c.formula}` as of {c.as_of_date}")
+        for a in c.assumptions:
+            lines.append(f"  - assumption: {a}")
+    lines.append("")
+
+    lines.append("## Claims")
+    for cl in claims:
+        val = _amount_display(cl.stated_amount_paise) if cl.stated_amount_paise is not None else (cl.stated_months or "n/a")
+        lines.append(f"- **{cl.metric}** = {val} as of {cl.as_of_date} ({cl.status}) — \"{cl.original_text}\"")
+    lines.append("")
+
+    lines.append("## Issues")
+    for iss in issues:
+        lines.append(f"### {iss.id} — {iss.status}")
+        lines.append(iss.question)
+        if iss.suggested_request:
+            lines.append(f"> Suggested next step: {iss.suggested_request}")
+        reviews = db.query(Review).filter(Review.issue_id == iss.id).order_by(Review.reviewed_at).all()
+        if reviews:
+            lines.append("")
+            lines.append("| Reviewed at | Decision | Explanation | Memory status |")
+            lines.append("|---|---|---|---|")
+            for r in reviews:
+                lines.append(f"| {r.reviewed_at} | {r.decision} | {r.explanation} | {r.memory_status} |")
+        lines.append("")
+
+    return PlainTextResponse("\n".join(lines), media_type="text/markdown")
 
 
 @router.post("/deals/demo/introduce-july-evidence")

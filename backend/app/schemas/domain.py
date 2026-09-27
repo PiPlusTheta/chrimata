@@ -101,3 +101,26 @@ class ReviewCreate(BaseModel):
 class MemoryStatusUpdate(BaseModel):
     memory_status: str  # retained | failed
     reason: Optional[str] = None
+
+class ClaimInput(BaseModel):
+    """A claim to create alongside a newly-ingested document. Lets a document POST
+    trigger the evidence engine's own conflict-detection, generalizing what used to
+    be a July-only hardcoded flow to any new evidence introduced live."""
+    id: str
+    metric: str
+    original_text: str
+    stated_amount_paise: Optional[int] = None
+    stated_months: Optional[str] = None
+    as_of_date: str
+    definition: Optional[str] = None
+    status: str = "claimed"
+    locator: str
+    quote: Optional[str] = None
+
+class DocumentIngestRequest(DocumentSchema):
+    claims: List[ClaimInput] = []
+
+class DocumentIngestResponse(BaseModel):
+    document: DocumentSchema
+    claims_created: List[str] = []
+    issues_opened: List[str] = []

@@ -41,3 +41,12 @@ class NewSessionRequest(BaseModel):
 
 class NewSessionResponse(BaseModel):
     session_id: str
+
+class ReflectRequest(BaseModel):
+    deal_id: str
+    query: Optional[str] = None
+
+class ReflectResponse(BaseModel):
+    available: bool
+    text: Optional[str] = None
+    reason: Optional[str] = None

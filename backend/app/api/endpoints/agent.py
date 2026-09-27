@@ -8,7 +8,8 @@ from app.schemas.agent import (
     AnalyzeRequest, AnalyzeResponse,
     AskRequest, AgentAnswer,
     RetainReviewRequest, RetainReviewResponse,
-    NewSessionRequest, NewSessionResponse
+    NewSessionRequest, NewSessionResponse,
+    ReflectRequest, ReflectResponse,
 )
 from app.agent.service import AgentService
 from app.agent.adapter import HindsightAdapter
@@ -104,3 +105,22 @@ async def retain_review(req: RetainReviewRequest, db: Session = Depends(get_db))
 def new_session(req: NewSessionRequest):
     new_session_id = f"sess_{uuid.uuid4().hex[:8]}"
     return NewSessionResponse(session_id=new_session_id)
+
+@router.post("/reflect", response_model=ReflectResponse)
+async def reflect(req: ReflectRequest, db: Session = Depends(get_db)):
+    """Synthesizes a markdown summary of what this investigation has learned so
+    far, from Hindsight's consolidated memory — distinct from /ask, which mixes
+    live DB evidence with memory. This is purely "what does memory itself say",
+    so an empty/unavailable Hindsight bank must say so, never fabricate a summary."""
+    if not hindsight_adapter.is_available():
+        return ReflectResponse(available=False, reason="Hindsight is not configured in this environment")
+
+    from app.api.endpoints.evidence import _run_id
+    run_id = _run_id(db)
+    bank_id = _get_bank_id(run_id, req.deal_id)
+    query = req.query or "Summarize everything learned across this investigation so far: resolved discrepancies, open questions, and how they were explained."
+
+    text = await hindsight_adapter.reflect(bank_id, query)
+    if text is None:
+        return ReflectResponse(available=False, reason="Hindsight reflect call failed or returned nothing")
+    return ReflectResponse(available=True, text=text)

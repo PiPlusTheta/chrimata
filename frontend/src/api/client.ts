@@ -80,6 +80,34 @@ export async function resetDemo() {
   return res.json();
 }
 
+export async function fetchDocument(documentId: string) {
+  const res = await fetch(`${API_BASE_URL}/deals/demo/documents/${documentId}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch document");
+  return res.json();
+}
+
+export async function fetchCalculations() {
+  const res = await fetch(`${API_BASE_URL}/deals/demo/calculations`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch calculations");
+  return res.json();
+}
+
+export async function fetchReport(): Promise<string> {
+  const res = await fetch(`${API_BASE_URL}/deals/demo/report`, { cache: 'no-store' });
+  if (!res.ok) throw new Error("Failed to fetch report");
+  return res.text();
+}
+
+export async function agentReflect(dealId: string, query?: string) {
+  const res = await fetch(`${API_BASE_URL}/agent/reflect`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ deal_id: dealId, query })
+  });
+  if (!res.ok) throw new Error("Failed to reflect");
+  return res.json();
+}
+
 export async function injectJulyEvidence() {
   // Calls Niloy's staged-reveal endpoint, which ingests the canonical July documents
   // (doc-update-jul, doc-churn-notice-jul, etc. — the same IDs already cited by

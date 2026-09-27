@@ -134,3 +134,66 @@ def test_document_content_is_read_from_the_real_seed_files(client):
     doc = client.get("/api/deals/demo/documents/doc-deck-mar").json()
     assert "Northstar Ops" in doc["content"]
     assert "₹2.4 crore" in doc["content"]
+
+
+def test_ingesting_a_conflicting_claim_auto_opens_an_issue(client):
+    resp = client.post("/api/deals/demo/documents", json={
+        "id": "doc-board-update-aug", "title": "August Board Update", "type": "update", "version": "1.0",
+        "document_date": "2026-08-15", "ingested_at": "2026-08-15T10:00:00Z",
+        "content": "Active MRR has grown to 20 lakh.",
+        "claims": [{
+            "id": "claim-active-mrr-aug", "metric": "active_mrr",
+            "original_text": "Active MRR has grown to 20 lakh.",
+            "stated_amount_paise": 20_00_000_00, "as_of_date": "2026-08-15", "locator": "paragraph 1",
+        }],
+    })
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["claims_created"] == ["claim-active-mrr-aug"]
+    assert len(body["issues_opened"]) == 1
+
+    issue_id = body["issues_opened"][0]
+    issue = next(i for i in client.get("/api/deals/demo/issues").json() if i["id"] == issue_id)
+    assert issue["claim_id"] == "claim-active-mrr-aug"
+    assert issue["status"] == "open"
+    assert "doc-ledger-apr" in [e["document_id"] for e in issue["evidence_against"]]
+    # issue-arr-apr (the seeded, unrelated issue) must be untouched
+    assert any(i["id"] == "issue-arr-apr" for i in client.get("/api/deals/demo/issues").json())
+
+
+def test_ingesting_a_minor_claim_change_does_not_open_an_issue(client):
+    # ₹72L -> ₹73L is a ~1.4% change — well under the 5% discrepancy threshold.
+    resp = client.post("/api/deals/demo/documents", json={
+        "id": "doc-minor-update", "title": "Minor Update", "type": "update", "version": "1.0",
+        "document_date": "2026-08-20", "ingested_at": "2026-08-20T10:00:00Z", "content": "Cash is now 73 lakh.",
+        "claims": [{
+            "id": "claim-cash-aug", "metric": "cash", "original_text": "Cash is now 73 lakh.",
+            "stated_amount_paise": 73_00_000_00, "as_of_date": "2026-08-20", "locator": "paragraph 1",
+        }],
+    })
+    assert resp.status_code == 200
+    assert resp.json()["issues_opened"] == []
+
+
+def test_ingesting_a_duplicate_claim_id_is_rejected(client):
+    payload = {
+        "id": "doc-dup", "title": "Dup", "type": "update", "version": "1.0",
+        "document_date": "2026-08-15", "ingested_at": "2026-08-15T10:00:00Z", "content": "x",
+        "claims": [{
+            "id": "claim-active-mrr-apr",  # collides with a seeded claim id
+            "metric": "active_mrr", "original_text": "x", "stated_amount_paise": 1, "as_of_date": "2026-08-15", "locator": "p1",
+        }],
+    }
+    resp = client.post("/api/deals/demo/documents", json=payload)
+    assert resp.status_code == 409
+
+
+def test_diligence_report_contains_claims_and_issues(client):
+    resp = client.get("/api/deals/demo/report")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/markdown")
+    text = resp.text
+    assert "# Chrimata Diligence Report" in text
+    assert "issue-arr-apr" in text
+    assert "active_mrr" in text
+    assert "₹14,400,000" in text  # calculated ARR, exact rupee display
