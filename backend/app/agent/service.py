@@ -1,7 +1,31 @@
 import os
+from decimal import Decimal
 from openai import OpenAI
 from app.schemas.agent import AgentAnswer, RecalledContext
 from app.schemas.domain import SourceRef
+
+
+def _format_inr(amount_paise) -> str:
+    """Exact server-side paise -> rupee formatting (Decimal, no float). The LLM is
+    instructed to only ever copy this string verbatim — it kept getting even trivial
+    /100 division wrong when asked to do the conversion itself in prose."""
+    if amount_paise is None:
+        return None
+    rupees = Decimal(amount_paise) / Decimal(100)
+    return f"₹{rupees:,.0f}"
+
+
+def _add_display_amounts(node):
+    """Recursively walks the evidence structure and adds an `amount_display` string
+    next to every `amount_paise` field, so the LLM never has to compute one itself."""
+    if isinstance(node, dict):
+        if "amount_paise" in node and node["amount_paise"] is not None:
+            node = {**node, "amount_display": _format_inr(node["amount_paise"])}
+        return {k: _add_display_amounts(v) for k, v in node.items()}
+    if isinstance(node, list):
+        return [_add_display_amounts(v) for v in node]
+    return node
+
 
 class AgentService:
     def __init__(self):
@@ -37,20 +61,25 @@ class AgentService:
 
     def _run_llm_analysis(self, mode: str, question: str, evidence: dict, memory: list) -> AgentAnswer:
         import json
-        metrics = evidence.get("metrics", [])
-        issues = evidence.get("issues", [])
+        metrics = _add_display_amounts(evidence.get("metrics", []))
+        issues = _add_display_amounts(evidence.get("issues", []))
         
+        # `memory` is a list of hindsight_client_api RecallResult objects (Pydantic
+        # models with .text/.id/.document_id/.metadata attributes), NOT dicts — using
+        # .get() here used to raise AttributeError on any non-empty recall, which is
+        # exactly the "fresh session recalls the resolved issue" demo moment.
         context_objs = []
         memory_texts = []
         for m in memory:
-            mem_text = m.get("text", "")
+            mem_text = getattr(m, "text", "") or ""
             if mem_text:
                 memory_texts.append(mem_text)
+            meta = getattr(m, "metadata", None) or {}
             context_objs.append(RecalledContext(
-                review_id=m.get("review_id"),
-                memory_id=m.get("memory_id"),
+                review_id=meta.get("review_id"),
+                memory_id=getattr(m, "id", None),
                 summary=mem_text,
-                source_ids=[]
+                source_ids=[getattr(m, "document_id", None)] if getattr(m, "document_id", None) else []
             ))
             
         system_prompt = (
@@ -63,7 +92,12 @@ class AgentService:
             "1. You must cite real document IDs and locators from the evidence for any material factual statements.\n"
             "2. Distinguish between 'claimed', 'calculated', 'inferred', and 'conditional' numbers.\n"
             "3. If evidence is missing (e.g. July ledger), explicitly ask for it and do not invent figures.\n"
-            "4. Never accuse anyone of dishonesty or make an investment decision.\n\n"
+            "4. Never accuse anyone of dishonesty or make an investment decision.\n"
+            "5. Every object with an `amount_paise` field also has a pre-computed `amount_display` string "
+            "(e.g. '₹1,200,000'). You must copy `amount_display` verbatim whenever you state that amount in "
+            "your answer. Never compute your own paise-to-rupee conversion or lakh/crore figure — you have been "
+            "wrong doing this by hand before. The only exception: quoting lakh/crore phrasing exactly as it "
+            "appears in a source document's original text is fine, since that's a quote, not a calculation.\n\n"
             "Respond in JSON matching this schema: "
             '{"answer": "your detailed text response here", "uncertainties": ["list of what is unclear or missing"], "suggested_next_question": "a follow up question to ask the user"}'
         )

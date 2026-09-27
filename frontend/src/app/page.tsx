@@ -41,6 +41,7 @@ export default function Dashboard() {
   const [question, setQuestion] = useState("");
   const [reviewDrafts, setReviewDrafts] = useState<Record<string, {decision: string, exp: string}>>({});
   const [retaining, setRetaining] = useState<Record<string, string>>({});
+  const [savedReviewIds, setSavedReviewIds] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadData();
@@ -105,17 +106,34 @@ export default function Dashboard() {
   const handleSubmitReview = async (issueId: string) => {
     const draft = reviewDrafts[issueId];
     if (!draft?.decision || !draft?.exp) return;
-    
+
     setRetaining(prev => ({...prev, [issueId]: "saving"}));
     try {
       const rev = await submitReview(issueId, draft.decision, draft.exp, "Nitesh");
-      setRetaining(prev => ({...prev, [issueId]: "retaining"}));
-      const ret = await retainReview(rev.id);
-      setRetaining(prev => ({...prev, [issueId]: ret.status}));
+      setSavedReviewIds(prev => ({...prev, [issueId]: rev.id}));
+      await attemptRetain(issueId, rev.id);
       loadData();
     } catch (e) {
       setRetaining(prev => ({...prev, [issueId]: "failed"}));
     }
+  };
+
+  // Retry only re-attempts Hindsight retention for the review already saved above —
+  // it must NOT call submitReview again, which would create a duplicate analyst
+  // review with the same decision/explanation.
+  const attemptRetain = async (issueId: string, reviewId: string) => {
+    setRetaining(prev => ({...prev, [issueId]: "retaining"}));
+    try {
+      const ret = await retainReview(reviewId);
+      setRetaining(prev => ({...prev, [issueId]: ret.status}));
+    } catch (e) {
+      setRetaining(prev => ({...prev, [issueId]: "failed"}));
+    }
+  };
+
+  const handleRetryRetain = (issueId: string) => {
+    const reviewId = savedReviewIds[issueId];
+    if (reviewId) attemptRetain(issueId, reviewId);
   };
 
   if (loading && !summary) return <div className="flex h-screen items-center justify-center bg-gray-900 text-white font-mono">Loading Chrimata...</div>;
@@ -217,7 +235,7 @@ export default function Dashboard() {
                         {rStatus && (
                           <div className="text-xs flex items-center gap-1 mt-2 text-gray-400">
                             Status: <span className={rStatus === 'retained' ? 'text-green-400' : (rStatus === 'failed' ? 'text-red-400' : 'text-amber-400')}>{rStatus}</span>
-                            {rStatus === 'failed' && <button className="ml-2 text-indigo-400 hover:underline text-[10px]" onClick={() => handleSubmitReview(iss.id)}>Retry</button>}
+                            {rStatus === 'failed' && <button className="ml-2 text-indigo-400 hover:underline text-[10px]" onClick={() => handleRetryRetain(iss.id)}>Retry</button>}
                           </div>
                         )}
                       </div>

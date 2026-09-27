@@ -81,51 +81,12 @@ export async function resetDemo() {
 }
 
 export async function injectJulyEvidence() {
-  const docs = [
-    {
-      id: "doc-update-jul",
-      deal_id: "demo",
-      title: "July Investor Update",
-      type: "update",
-      version: "1.0",
-      document_date: "2026-07-05",
-      ingested_at: new Date().toISOString(),
-      content: "MRR remains strong at ₹17 lakh.",
-      synthetic: true
-    },
-    {
-      id: "doc-notice-jul",
-      deal_id: "demo",
-      title: "July Churn Notice",
-      type: "notice",
-      version: "1.0",
-      document_date: "2026-07-02",
-      ingested_at: new Date().toISOString(),
-      content: "Customer X cancelled, representing ₹4 lakh monthly churn.",
-      synthetic: true
-    },
-    {
-      id: "doc-cash-jul",
-      deal_id: "demo",
-      title: "July Cash Report",
-      type: "cash",
-      version: "1.0",
-      document_date: "2026-07-01",
-      ingested_at: new Date().toISOString(),
-      content: "Current cash: ₹72 lakh. Net burn: ₹18 lakh/month.",
-      synthetic: true
-    }
-  ];
-  
-  for (const doc of docs) {
-    try {
-      await fetch(`${API_BASE_URL}/deals/demo/documents`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(doc)
-      });
-    } catch (e) {
-      console.warn("Doc might already exist", e);
-    }
-  }
+  // Calls Niloy's staged-reveal endpoint, which ingests the canonical July documents
+  // (doc-update-jul, doc-churn-notice-jul, etc. — the same IDs already cited by
+  // claims/issues) and opens issue-mrr-jul. Idempotent: safe to click twice.
+  const res = await fetch(`${API_BASE_URL}/deals/demo/introduce-july-evidence`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error("Failed to introduce July evidence");
+  return res.json();
 }

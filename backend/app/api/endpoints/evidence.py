@@ -10,7 +10,7 @@ from app.schemas.domain import (
     DocumentSchema, ClaimSchema, IssueSchema, ReviewSchema, ReviewCreate,
     CalculationSchema, SummarySchema, MemoryStatusUpdate, SourceRef,
 )
-from app.db.seed import reset_db, event
+from app.db.seed import reset_db, event, introduce_july_evidence
 from app.services.evidence import EvidenceService
 
 router = APIRouter()
@@ -45,15 +45,18 @@ def _claim_source(db: Session, claim_id: str) -> SourceRef:
     return SourceRef(**claim.sources[0])
 
 
+def _optional_claim_paise(db: Session, claim_id: str):
+    claim = db.query(Claim).filter(Claim.id == claim_id).first()
+    return claim.stated_amount_paise if claim else None
+
+
 def _calculations(db: Session) -> List[CalculationSchema]:
     active_mrr = _claim_paise(db, "claim-active-mrr-apr")
     cash = _claim_paise(db, "claim-cash-q1")
     burn = _claim_paise(db, "claim-burn-q1")
     financing = _claim_paise(db, "claim-financing-proposed-jun")
-    reported_mrr = _claim_paise(db, "claim-mrr-jul")
-    churned = _claim_paise(db, "claim-churn-jul")
 
-    return [
+    calcs = [
         EvidenceService.calculate_annualised_arr(active_mrr, _claim_source(db, "claim-active-mrr-apr"), "2026-04-01"),
         EvidenceService.calculate_simple_runway(cash, _claim_source(db, "claim-cash-q1"), burn, _claim_source(db, "claim-burn-q1"), "2026-04-01"),
         EvidenceService.calculate_proposed_runway(
@@ -62,12 +65,19 @@ def _calculations(db: Session) -> List[CalculationSchema]:
             burn, _claim_source(db, "claim-burn-q1"),
             "2026-06-30",
         ),
-        EvidenceService.calculate_inferred_post_churn_mrr(
+    ]
+
+    # July MRR / churn claims only exist once introduce_july_evidence() has run —
+    # before that, this calculation simply isn't available yet (not an error).
+    reported_mrr = _optional_claim_paise(db, "claim-mrr-jul")
+    churned = _optional_claim_paise(db, "claim-churn-jul")
+    if reported_mrr is not None and churned is not None:
+        calcs.append(EvidenceService.calculate_inferred_post_churn_mrr(
             reported_mrr, _claim_source(db, "claim-mrr-jul"),
             churned, _claim_source(db, "claim-churn-jul"),
             "2026-07-05",
-        ),
-    ]
+        ))
+    return calcs
 
 
 @router.get("/deals/demo/summary", response_model=SummarySchema)
@@ -189,25 +199,38 @@ def add_review(issue_id: str, review: ReviewCreate, db: Session = Depends(get_db
     return db_review
 
 
+def set_review_memory_status(db: Session, review_id: str, memory_status: str) -> Review:
+    """Single validated write path for memory_status. Used by the PATCH endpoint below
+    AND importable directly by Nitesh's agent module, so the agent never has to run
+    its own raw ORM write against Niloy's `reviews` table."""
+    if memory_status not in ("retained", "failed"):
+        _err(400, "invalid_memory_status", "memory_status must be 'retained' or 'failed'")
+    review = db.query(Review).filter(Review.id == review_id).first()
+    if not review:
+        _err(404, "not_found", "Review not found")
+    review.memory_status = memory_status
+    db.commit()
+    db.refresh(review)
+    return review
+
+
 @router.patch("/reviews/{review_id}/memory-status", response_model=ReviewSchema)
 def update_memory_status(review_id: str, status_update: MemoryStatusUpdate, db: Session = Depends(get_db)):
     """Idempotent handshake: Nitesh's agent calls this once Hindsight has (or has
     failed to) retain a review. The review row was already committed by
     POST /issues/{id}/reviews, so a failed Hindsight call never loses the decision."""
-    if status_update.memory_status not in ("retained", "failed"):
-        _err(400, "invalid_memory_status", "memory_status must be 'retained' or 'failed'")
-
-    review = db.query(Review).filter(Review.id == review_id).first()
-    if not review:
-        _err(404, "not_found", "Review not found")
-
-    review.memory_status = status_update.memory_status
-    db.commit()
-    db.refresh(review)
-    return review
+    return set_review_memory_status(db, review_id, status_update.memory_status)
 
 
 @router.post("/demo/reset")
 def reset_demo(db: Session = Depends(get_db)):
     run_id = reset_db(db)
     return {"message": "Demo reset successfully", "run_id": run_id}
+
+
+@router.post("/deals/demo/introduce-july-evidence")
+def introduce_july(db: Session = Depends(get_db)):
+    """Live-demo trigger: reveals the July documents/claims and opens issue-mrr-jul.
+    Idempotent — calling it again after it already ran is a harmless no-op, so the
+    'Add July Evidence' button can't create duplicates."""
+    return introduce_july_evidence(db)
