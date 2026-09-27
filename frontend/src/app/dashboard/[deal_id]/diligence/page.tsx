@@ -84,7 +84,7 @@ export default function DiligenceWorkspace() {
       setError("");
 
       // Fetch extra data for new features
-      const crs = await listChangeReviews().catch(() => []);
+      const crs = await listChangeReviews(dealId).catch(() => []);
       setChangeReviews(crs);
 
       const erData: Record<string, any[]> = {};

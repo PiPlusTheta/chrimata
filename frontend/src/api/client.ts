@@ -277,8 +277,8 @@ export async function createAIReview(triggerDocumentId: string, memoryEnabled = 
   return res.json();
 }
 
-export async function listChangeReviews() {
-  const res = await fetch(`${API_BASE_URL}/change-reviews`, { cache: "no-store" });
+export async function listChangeReviews(dealId: string) {
+  const res = await fetch(`${API_BASE_URL}/deals/${dealId}/change-reviews`, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to list change reviews");
   return res.json();
 }
