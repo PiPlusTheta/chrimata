@@ -9,4 +9,4 @@ pytest
 httpx
 groq
 openai
-hindsight-client
+hindsight-all
