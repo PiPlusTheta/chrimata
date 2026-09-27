@@ -7,3 +7,6 @@ psycopg[binary]
 python-dotenv
 pytest
 httpx
+groq
+openai
+hindsight-client
