@@ -63,3 +63,28 @@ class Review(Base):
     reviewed_at = Column(String)
     reviewer = Column(String)
     memory_status = Column(String)  # pending | retained | failed
+
+
+class ChatSession(Base):
+    """A real, persisted Ask Chrimata conversation — not client-side state. Scoped to
+    a run_id so a demo reset naturally orphans old sessions the same way it clears
+    Hindsight memory (both are keyed off run_id)."""
+    __tablename__ = "chat_sessions"
+    id = Column(String, primary_key=True, index=True)
+    run_id = Column(String, index=True)
+    deal_id = Column(String, default="demo")
+    title = Column(String)
+    created_at = Column(String)
+    updated_at = Column(String)
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+    id = Column(String, primary_key=True, index=True)
+    session_id = Column(String, ForeignKey("chat_sessions.id"), index=True)
+    role = Column(String)  # user | agent | system
+    text = Column(Text)
+    context = Column(JSON, nullable=True)  # List[RecalledContext] for agent messages
+    uncertainties = Column(JSON, nullable=True)
+    suggested_next_question = Column(Text, nullable=True)
+    created_at = Column(String)
