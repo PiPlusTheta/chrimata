@@ -52,7 +52,7 @@ export default function LandingPage() {
         <div className="landing-container py-3 flex items-center justify-between text-xs font-mono">
           <div className="flex items-center gap-4">
             <Link className="font-display text-base font-semibold tracking-wide text-text-primary hover:text-bronze transition-colors flex items-center gap-2" href="/">
-              <span className="w-2.5 h-2.5 bg-bronze rotate-45 inline-block"></span>
+              <img src="/logo.png" alt="Chrimata Logo" className="h-6 w-auto object-contain" />
               CHRIMATA
             </Link>
             <span className="hidden sm:inline text-outline-soft">/</span>

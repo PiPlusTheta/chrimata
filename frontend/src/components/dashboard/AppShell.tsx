@@ -58,7 +58,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="dashboard-topbar">
           <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             <button className="dashboard-menu-button" type="button" onClick={() => setMenuOpen(true)} aria-label="Open navigation" aria-expanded={menuOpen}><span className="material-symbols-outlined">menu</span></button>
-            <div className="flex min-w-0 items-center gap-3"><span className="font-display text-lg font-light tracking-tight text-on-surface">Chrimata</span><span className="hidden h-4 w-px bg-accent-border sm:block" /><span className="hidden truncate font-headline text-lg font-light tracking-tight text-on-surface sm:inline">Institutional Terminal</span></div>
+            <div className="flex min-w-0 items-center gap-3"><img src="/logo.png" alt="Logo" className="h-4 w-auto object-contain" /><span className="font-display text-lg font-light tracking-tight text-on-surface">Chrimata</span><span className="hidden h-4 w-px bg-accent-border sm:block" /><span className="hidden truncate font-headline text-lg font-light tracking-tight text-on-surface sm:inline">Institutional Terminal</span></div>
             <div className="hidden items-center gap-2 rounded-full border border-hairline bg-accent-surface/70 px-2.5 py-1 md:flex"><span className={`h-1.5 w-1.5 rounded-full ${backendOnline ? "bg-tertiary" : "bg-terra-light"}`} /><span className="font-mono text-[10px] font-medium tracking-wide text-on-surface-variant">{backendOnline ? "DATA SERVICE CONNECTED" : "DATA SERVICE UNAVAILABLE"}</span></div>
           </div>
           <div className="flex items-center gap-4 lg:gap-6">
