@@ -3,3 +3,7 @@ uvicorn[standard]
 sqlalchemy
 pydantic
 psycopg2-binary
+psycopg[binary]
+python-dotenv
+pytest
+httpx

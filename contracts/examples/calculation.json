@@ -1,0 +1,31 @@
+{
+  "id": "calc-live-arr-apr",
+  "metric": "live_annualised_arr",
+  "amount_paise": 1440000000,
+  "months": null,
+  "as_of_date": "2026-04-01",
+  "status": "calculated",
+  "formula": "active_mrr \u00d7 12",
+  "inputs": [
+    {
+      "label": "active_mrr",
+      "amount_paise": 120000000,
+      "source": {
+        "document_id": "doc-ledger-apr",
+        "locator": "Active Monthly Recurring Revenue line",
+        "quote": null
+      }
+    }
+  ],
+  "assumptions": [
+    "Active subscriptions remain constant for 12 months.",
+    "Excludes signed-but-not-yet-active contracts and unsigned pipeline."
+  ],
+  "sources": [
+    {
+      "document_id": "doc-ledger-apr",
+      "locator": "Active Monthly Recurring Revenue line",
+      "quote": null
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "answer": "The founder clarified that the ARR figure in the March deck combined active, pipeline, and future contracts.",
+  "supporting_sources": ["doc_125"],
+  "recalled_context": ["Previous review rev_1 marked this explained"],
+  "uncertainties": ["Pending July billing ledger to confirm July MRR"],
+  "suggested_next_question": "Should we request the July billing ledger?"
+}

@@ -1,0 +1,34 @@
+{
+  "id": "issue-arr-apr",
+  "deal_id": "demo",
+  "claim_id": "claim-arr-mar",
+  "status": "open",
+  "question": "March deck states \u20b92.4 crore ARR, but the April ledger shows only \u20b912 lakh active MRR (\u20b91.44 crore annualised). Is there a discrepancy?",
+  "evidence_for": [
+    {
+      "document_id": "doc-deck-mar",
+      "locator": "paragraph 1",
+      "quote": null
+    }
+  ],
+  "evidence_against": [
+    {
+      "document_id": "doc-ledger-apr",
+      "locator": "Active Monthly Recurring Revenue line",
+      "quote": null
+    }
+  ],
+  "history": [
+    {
+      "id": "evt_f741d57e",
+      "at": "2026-04-01T00:00:00Z",
+      "kind": "opened",
+      "description": "Issue opened: March ARR claim exceeds April active-MRR-derived ARR.",
+      "source_ids": [
+        "doc-deck-mar",
+        "doc-ledger-apr"
+      ]
+    }
+  ],
+  "suggested_request": "Ask the founder whether the March ARR figure includes non-active revenue."
+}

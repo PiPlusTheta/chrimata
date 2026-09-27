@@ -1,0 +1,4 @@
+Charge_ID,Date,Amount,Status
+ch_1,2026-03-01,300000,Succeeded
+ch_2,2026-03-05,500000,Succeeded
+ch_3,2026-03-10,400000,Succeeded

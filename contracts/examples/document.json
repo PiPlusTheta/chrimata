@@ -1,0 +1,14 @@
+{
+    "id": "doc-ledger-apr",
+    "deal_id": "demo",
+    "title": "April Billing Ledger",
+    "type": "ledger",
+    "version": "1.0",
+    "document_date": "2026-04-01",
+    "period_start": null,
+    "period_end": null,
+    "ingested_at": "2026-09-27T00:00:00Z",
+    "content": "# April Billing Ledger\n**Date**: 01 April 2026\n\n- **Active Monthly Recurring Revenue**: \u20b912 lakh\n- **Signed contracts not yet active**: \u20b95 lakh\n- **Unsigned pipeline**: \u20b93 lakh\n",
+    "source_url": "data/demo/april_ledger.md",
+    "synthetic": true
+}

@@ -1,140 +1,123 @@
+import uuid
+import pathlib
 from sqlalchemy.orm import Session
-from app.models.domain import Document, Claim, Issue
-import json
+from app.models.domain import Document, Claim, Issue, Review, DemoRun
 
-def reset_db(db: Session):
-    # Clear existing data
+DATA_DIR = pathlib.Path(__file__).resolve().parents[3] / "data" / "demo"
+
+
+def _read(filename: str) -> str:
+    return (DATA_DIR / filename).read_text(encoding="utf-8")
+
+
+def sref(document_id: str, locator: str, quote: str = None) -> dict:
+    return {"document_id": document_id, "locator": locator, "quote": quote}
+
+
+def event(kind: str, description: str, source_ids: list) -> dict:
+    return {"id": f"evt_{uuid.uuid4().hex[:8]}", "at": "2026-04-01T00:00:00Z", "kind": kind,
+            "description": description, "source_ids": source_ids}
+
+
+DOCS = [
+    ("doc-deck-mar", "March Pitch Deck", "deck", "march_pitch_deck.md", "2026-03-15"),
+    ("doc-ledger-apr", "April Billing Ledger", "ledger", "april_ledger.md", "2026-04-01"),
+    ("doc-founder-email-apr", "Founder Email (April)", "email", "april_founder_email.md", "2026-04-15"),
+    ("doc-update-jul", "July Investor Update", "update", "july_update.md", "2026-07-01"),
+    ("doc-churn-notice-jul", "Customer Churn Notice", "notice", "july_churn.md", "2026-07-05"),
+    ("doc-cash-q1", "Q1 Cash Record", "cash", "q1_cash.md", "2026-04-01"),
+    ("doc-contract-register-feb", "Feb Contract Register", "contract", "feb_contract_register.csv", "2026-02-28"),
+    ("doc-activation-log-mar", "March Activation Log", "analyst_note", "march_activation_log.md", "2026-03-15"),
+    ("doc-bank-statement-may", "May Bank Statement", "cash", "may_bank_statement.csv", "2026-05-31"),
+    ("doc-term-sheet-jun", "June Financing Term Sheet", "contract", "june_financing_term_sheet.md", "2026-06-10"),
+    ("doc-board-minutes-jun", "June Board Minutes", "analyst_note", "june_board_minutes.md", "2026-06-30"),
+    ("doc-pipeline-jul", "July Sales Pipeline", "pipeline", "july_sales_pipeline.csv", "2026-07-01"),
+    ("doc-founder-slack-aug", "August Founder Slack", "analyst_note", "august_founder_slack.md", "2026-08-10"),
+    ("doc-payroll-apr", "April Payroll Register", "ledger", "april_payroll_register.csv", "2026-04-30"),
+    ("doc-stripe-export-mar", "March Stripe Export", "ledger", "march_stripe_export.csv", "2026-03-15"),
+]
+
+
+def reset_db(db: Session) -> str:
+    """Wipe and reseed the demo dataset. Returns the new run_id."""
+    db.query(Review).delete()
     db.query(Issue).delete()
     db.query(Claim).delete()
     db.query(Document).delete()
+    db.query(DemoRun).delete()
     db.commit()
 
-    # Create dummy seed data
-    # March Pitch Deck
-    doc1 = Document(
-        id="doc_1",
-        title="March Pitch Deck",
-        date="2026-03-15T10:00:00Z",
-        version="1.0",
-        type="presentation",
-        content="Our ARR is ₹2.4 crore...",
-        source_url="data/demo/march_pitch_deck.md"
-    )
-
-    # April Ledger
-    doc2 = Document(
-        id="doc_2",
-        title="April Billing Ledger",
-        date="2026-04-01T10:00:00Z",
-        version="1.0",
-        type="ledger",
-        content="Active Monthly Recurring Revenue: ₹12 lakh. Signed contracts not yet active: ₹5 lakh. Unsigned pipeline: ₹3 lakh.",
-        source_url="data/demo/april_ledger.md"
-    )
-
-    # April Founder Explanation
-    doc3 = Document(
-        id="doc_3",
-        title="Founder Email April",
-        date="2026-04-15T10:00:00Z",
-        version="1.0",
-        type="email",
-        content="The original March deck used 'ARR' loosely to combine active, contracted future, and unsigned pipeline amounts.",
-        source_url="data/demo/april_founder_email.md"
-    )
-
-    # July Update
-    doc4 = Document(
-        id="doc_4",
-        title="July Investor Update",
-        date="2026-07-01T10:00:00Z",
-        version="1.0",
-        type="presentation",
-        content="Current MRR is ₹17 lakh.",
-        source_url="data/demo/july_update.md"
-    )
-
-    # July Churn Notice
-    doc5 = Document(
-        id="doc_5",
-        title="Customer Churn Notice",
-        date="2026-07-05T10:00:00Z",
-        version="1.0",
-        type="email",
-        content="A major customer paying ₹4 lakh/month churned.",
-        source_url="data/demo/july_churn.md"
-    )
-
-    # Cash Record
-    doc6 = Document(
-        id="doc_6",
-        title="Q1 Cash Record",
-        date="2026-04-01T10:00:00Z",
-        version="1.0",
-        type="ledger",
-        content="Current Cash: ₹72 lakh. Monthly net burn: ₹18 lakh. Expected financing: ₹1.08Cr (unconfirmed).",
-        source_url="data/demo/q1_cash.md"
-    )
-
-    db.add_all([doc1, doc2, doc3, doc4, doc5, doc6])
+    for doc_id, title, dtype, filename, date in DOCS:
+        db.add(Document(
+            id=doc_id, deal_id="demo", title=title, type=dtype, version="1.0",
+            document_date=date, ingested_at="2026-09-27T00:00:00Z",
+            content=_read(filename), source_url=f"data/demo/{filename}", synthetic=True,
+        ))
     db.commit()
 
-    # Seed Claims
-    claim1 = Claim(
-        id="claim_1",
-        metric="ARR",
-        stated_value="24000000",
-        unit="INR",
-        as_of_date="2026-03-15",
-        definition="Annual Recurring Revenue as per March deck",
-        source_ids=json.dumps(["doc_1"]),
-        status="active"
-    )
-
-    claim2 = Claim(
-        id="claim_2",
-        metric="MRR",
-        stated_value="1700000",
-        unit="INR",
-        as_of_date="2026-07-01",
-        definition="Monthly Recurring Revenue as per July update",
-        source_ids=json.dumps(["doc_4"]),
-        status="active"
-    )
-
-    claim3 = Claim(
-        id="claim_3",
-        metric="Cash Runway Scenario",
-        stated_value="10.0",
-        unit="Months",
-        as_of_date="2026-04-01",
-        definition="Runway with proposed financing",
-        source_ids=json.dumps(["doc_6"]),
-        status="active"
-    )
-
-    db.add_all([claim1, claim2, claim3])
+    claims = [
+        Claim(id="claim-arr-mar", metric="arr", original_text="Our current ARR is ₹2.4 crore.",
+              stated_amount_paise=2_400_000_00_00, as_of_date="2026-03-15",
+              definition="Annual Recurring Revenue as stated in the March pitch deck", status="claimed",
+              sources=[sref("doc-deck-mar", "paragraph 1", "Our current ARR is ₹2.4 crore.")]),
+        Claim(id="claim-active-mrr-apr", metric="mrr", original_text="Active Monthly Recurring Revenue: ₹12 lakh.",
+              stated_amount_paise=12_00_000_00, as_of_date="2026-04-01",
+              definition="MRR from customers currently active and billing", status="claimed",
+              sources=[sref("doc-ledger-apr", "Active Monthly Recurring Revenue line")]),
+        Claim(id="claim-contracted-mrr-apr", metric="mrr", original_text="Signed contracts not yet active: ₹5 lakh.",
+              stated_amount_paise=5_00_000_00, as_of_date="2026-04-01",
+              definition="Signed but not-yet-active monthly revenue — excluded from live ARR", status="claimed",
+              sources=[sref("doc-ledger-apr", "Signed contracts not yet active line")]),
+        Claim(id="claim-pipeline-mrr-apr", metric="mrr", original_text="Unsigned pipeline: ₹3 lakh.",
+              stated_amount_paise=3_00_000_00, as_of_date="2026-04-01",
+              definition="Unsigned sales pipeline monthly value — excluded from live ARR", status="claimed",
+              sources=[sref("doc-ledger-apr", "Unsigned pipeline line")]),
+        Claim(id="claim-mrr-jul", metric="mrr", original_text="Our current MRR is ₹17 lakh.",
+              stated_amount_paise=17_00_000_00, as_of_date="2026-07-01",
+              definition="Current MRR as stated in the July investor update", status="claimed",
+              sources=[sref("doc-update-jul", "paragraph 1", "Our current MRR is ₹17 lakh.")]),
+        Claim(id="claim-churn-jul", metric="mrr", original_text="A major customer (MegaCorp) paying ₹4 lakh/month has churned.",
+              stated_amount_paise=4_00_000_00, as_of_date="2026-07-05",
+              definition="Monthly recurring revenue lost to the named churned customer", status="claimed",
+              sources=[sref("doc-churn-notice-jul", "paragraph 1")]),
+        Claim(id="claim-cash-q1", metric="runway", original_text="Current Cash: ₹72 lakh.",
+              stated_amount_paise=72_00_000_00, as_of_date="2026-04-01",
+              definition="Cash on hand per the Q1 cash record", status="claimed",
+              sources=[sref("doc-cash-q1", "Current Cash line")]),
+        Claim(id="claim-burn-q1", metric="runway", original_text="Monthly Net Burn: ₹18 lakh.",
+              stated_amount_paise=18_00_000_00, as_of_date="2026-04-01",
+              definition="Net cash burn per month per the Q1 cash record", status="claimed",
+              sources=[sref("doc-cash-q1", "Monthly Net Burn line")]),
+        Claim(id="claim-financing-proposed-jun", metric="runway", original_text="Amount: ₹1.08 Crore. Not yet signed.",
+              stated_amount_paise=1_08_00_000_00, as_of_date="2026-06-10",
+              definition="Series A extension amount in the draft term sheet — not yet signed", status="claimed",
+              sources=[sref("doc-term-sheet-jun", "Amount line")]),
+        Claim(id="claim-runway-jul", metric="runway", original_text="Cash runway is tight (approx 3-4 months without the extension).",
+              stated_months="3-4", as_of_date="2026-06-30",
+              definition="Board's own qualitative runway estimate, pending the financing extension", status="claimed",
+              sources=[sref("doc-board-minutes-jun", "Agenda item 1")]),
+    ]
+    db.add_all(claims)
     db.commit()
 
-    # Seed Issues
-    issue1 = Issue(
-        id="issue_1",
-        claim_id="claim_1",
-        status="open",
-        question="March deck states ₹2.4 crore ARR, but April ledger active MRR annualises to ₹1.44 crore. Is there a discrepancy?",
-        evidence_for=json.dumps(["doc_1"]),
-        evidence_against=json.dumps(["doc_2"])
-    )
-
-    issue2 = Issue(
-        id="issue_2",
-        claim_id="claim_2",
-        status="open",
-        question="July update states ₹17 lakh current MRR, but July churn notice shows ₹4 lakh/month churn. Is MRR ₹13 lakh?",
-        evidence_for=json.dumps(["doc_4"]),
-        evidence_against=json.dumps(["doc_5"]),
-        suggested_request="Request July billing ledger for confirmation."
-    )
-
-    db.add_all([issue1, issue2])
+    issues = [
+        Issue(id="issue-arr-apr", claim_id="claim-arr-mar", status="open",
+              question="March deck states ₹2.4 crore ARR, but the April ledger shows only ₹12 lakh active MRR (₹1.44 crore annualised). Is there a discrepancy?",
+              evidence_for=[sref("doc-deck-mar", "paragraph 1")],
+              evidence_against=[sref("doc-ledger-apr", "Active Monthly Recurring Revenue line")],
+              history=[event("opened", "Issue opened: March ARR claim exceeds April active-MRR-derived ARR.", ["doc-deck-mar", "doc-ledger-apr"])],
+              suggested_request="Ask the founder whether the March ARR figure includes non-active revenue."),
+        Issue(id="issue-mrr-jul", claim_id="claim-mrr-jul", status="open",
+              question="July update states ₹17 lakh current MRR, but a dated churn notice shows a ₹4 lakh/month customer churned on July 5. Is post-churn MRR ₹13 lakh?",
+              evidence_for=[sref("doc-update-jul", "paragraph 1")],
+              evidence_against=[sref("doc-churn-notice-jul", "paragraph 1")],
+              history=[event("opened", "Issue opened: churn notice postdates the reported July MRR figure.", ["doc-update-jul", "doc-churn-notice-jul"])],
+              suggested_request="Request the July billing ledger to confirm live MRR after the churn."),
+    ]
+    db.add_all(issues)
     db.commit()
+
+    run_id = f"run_{uuid.uuid4().hex[:12]}"
+    db.add(DemoRun(id="demo", run_id=run_id))
+    db.commit()
+    return run_id

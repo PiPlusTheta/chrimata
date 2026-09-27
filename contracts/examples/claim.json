@@ -1,0 +1,18 @@
+{
+    "id": "claim-active-mrr-apr",
+    "deal_id": "demo",
+    "metric": "mrr",
+    "original_text": "Active Monthly Recurring Revenue: \u20b912 lakh.",
+    "stated_amount_paise": 120000000,
+    "stated_months": null,
+    "as_of_date": "2026-04-01",
+    "definition": "MRR from customers currently active and billing",
+    "status": "claimed",
+    "sources": [
+        {
+            "document_id": "doc-ledger-apr",
+            "locator": "Active Monthly Recurring Revenue line",
+            "quote": null
+        }
+    ]
+}
