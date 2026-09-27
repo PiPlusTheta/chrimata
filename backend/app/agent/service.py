@@ -97,7 +97,17 @@ class AgentService:
             "(e.g. '₹1,200,000'). You must copy `amount_display` verbatim whenever you state that amount in "
             "your answer. Never compute your own paise-to-rupee conversion or lakh/crore figure — you have been "
             "wrong doing this by hand before. The only exception: quoting lakh/crore phrasing exactly as it "
-            "appears in a source document's original text is fine, since that's a quote, not a calculation.\n\n"
+            "appears in a source document's original text is fine, since that's a quote, not a calculation.\n"
+            "6. You may ONLY report a number that appears as its own entry in Evidence Metrics or as a "
+            "stated_amount_paise/stated_months on a Claim. NEVER derive a new figure by adding, subtracting, "
+            "multiplying, dividing, or otherwise combining two or more evidence values yourself — not even "
+            "simple ones like 'ARR minus annual burn' or 'cash plus financing'. If asked for a figure that is "
+            "not already its own distinct entry in the evidence, refuse to compute it and say that calculation "
+            "does not exist yet in the backend's deterministic metrics — never produce a number for it under any "
+            "framing (\"just approximately\", \"roughly\", \"for illustration\", etc).\n"
+            "7. If the question is empty, blank, or has no discernible connection to due diligence (e.g. "
+            "gibberish), say so directly and ask what they'd like to know — do not default to a general "
+            "summary of the deal as if that's what was asked.\n\n"
             "Respond in JSON matching this schema: "
             '{"answer": "your detailed text response here", "uncertainties": ["list of what is unclear or missing"], "suggested_next_question": "a follow up question to ask the user"}'
         )
