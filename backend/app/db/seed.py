@@ -1,5 +1,6 @@
 import uuid
 import pathlib
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.models.domain import Document, Claim, Issue, Review, DemoRun
 
@@ -8,6 +9,13 @@ DATA_DIR = pathlib.Path(__file__).resolve().parents[3] / "data" / "demo"
 
 def _read(filename: str) -> str:
     return (DATA_DIR / filename).read_text(encoding="utf-8")
+
+
+def _now() -> str:
+    """Fresh, strictly-increasing timestamp per call — used as a secondary sort key
+    so claims on the same metric with a tied as_of_date still have a defined order
+    (see _maybe_open_issue_for_new_claim in evidence.py)."""
+    return datetime.now(timezone.utc).isoformat()
 
 
 def sref(document_id: str, locator: str, quote: str = None) -> dict:
@@ -66,35 +74,35 @@ def reset_db(db: Session) -> str:
         Claim(id="claim-arr-mar", metric="arr", original_text="Our current ARR is ₹2.4 crore.",
               stated_amount_paise=2_400_000_00_00, as_of_date="2026-03-15",
               definition="Annual Recurring Revenue as stated in the March pitch deck", status="claimed",
-              sources=[sref("doc-deck-mar", "paragraph 1", "Our current ARR is ₹2.4 crore.")]),
+              sources=[sref("doc-deck-mar", "paragraph 1", "Our current ARR is ₹2.4 crore.")], created_at=_now()),
         Claim(id="claim-active-mrr-apr", metric="active_mrr", original_text="Active Monthly Recurring Revenue: ₹12 lakh.",
               stated_amount_paise=12_00_000_00, as_of_date="2026-04-01",
               definition="MRR from customers currently active and billing", status="claimed",
-              sources=[sref("doc-ledger-apr", "Active Monthly Recurring Revenue line")]),
+              sources=[sref("doc-ledger-apr", "Active Monthly Recurring Revenue line")], created_at=_now()),
         Claim(id="claim-contracted-mrr-apr", metric="contracted_mrr", original_text="Signed contracts not yet active: ₹5 lakh.",
               stated_amount_paise=5_00_000_00, as_of_date="2026-04-01",
               definition="Signed but not-yet-active monthly revenue — excluded from live ARR", status="claimed",
-              sources=[sref("doc-ledger-apr", "Signed contracts not yet active line")]),
+              sources=[sref("doc-ledger-apr", "Signed contracts not yet active line")], created_at=_now()),
         Claim(id="claim-pipeline-mrr-apr", metric="pipeline_mrr", original_text="Unsigned pipeline: ₹3 lakh.",
               stated_amount_paise=3_00_000_00, as_of_date="2026-04-01",
               definition="Unsigned sales pipeline monthly value — excluded from live ARR", status="claimed",
-              sources=[sref("doc-ledger-apr", "Unsigned pipeline line")]),
+              sources=[sref("doc-ledger-apr", "Unsigned pipeline line")], created_at=_now()),
         Claim(id="claim-cash-q1", metric="cash", original_text="Current Cash: ₹72 lakh.",
               stated_amount_paise=72_00_000_00, as_of_date="2026-04-01",
               definition="Cash on hand per the Q1 cash record", status="claimed",
-              sources=[sref("doc-cash-q1", "Current Cash line")]),
+              sources=[sref("doc-cash-q1", "Current Cash line")], created_at=_now()),
         Claim(id="claim-burn-q1", metric="burn", original_text="Monthly Net Burn: ₹18 lakh.",
               stated_amount_paise=18_00_000_00, as_of_date="2026-04-01",
               definition="Net cash burn per month per the Q1 cash record", status="claimed",
-              sources=[sref("doc-cash-q1", "Monthly Net Burn line")]),
+              sources=[sref("doc-cash-q1", "Monthly Net Burn line")], created_at=_now()),
         Claim(id="claim-financing-proposed-jun", metric="proposed_financing", original_text="Amount: ₹1.08 Crore. Not yet signed.",
               stated_amount_paise=1_08_00_000_00, as_of_date="2026-06-10",
               definition="Series A extension amount in the draft term sheet — not yet signed", status="claimed",
-              sources=[sref("doc-term-sheet-jun", "Amount line")]),
+              sources=[sref("doc-term-sheet-jun", "Amount line")], created_at=_now()),
         Claim(id="claim-runway-jul", metric="runway", original_text="Cash runway is tight (approx 3-4 months without the extension).",
               stated_months="3-4", as_of_date="2026-06-30",
               definition="Board's own qualitative runway estimate, pending the financing extension", status="claimed",
-              sources=[sref("doc-board-minutes-jun", "Agenda item 1")]),
+              sources=[sref("doc-board-minutes-jun", "Agenda item 1")], created_at=_now()),
     ]
     db.add_all(claims)
     db.commit()
@@ -135,11 +143,11 @@ def introduce_july_evidence(db: Session) -> dict:
         Claim(id="claim-mrr-jul", metric="mrr", original_text="Our current MRR is ₹17 lakh.",
               stated_amount_paise=17_00_000_00, as_of_date="2026-07-01",
               definition="Current MRR as stated in the July investor update", status="claimed",
-              sources=[sref("doc-update-jul", "paragraph 1", "Our current MRR is ₹17 lakh.")]),
+              sources=[sref("doc-update-jul", "paragraph 1", "Our current MRR is ₹17 lakh.")], created_at=_now()),
         Claim(id="claim-churn-jul", metric="churned_mrr", original_text="A major customer (MegaCorp) paying ₹4 lakh/month has churned.",
               stated_amount_paise=4_00_000_00, as_of_date="2026-07-05",
               definition="Monthly recurring revenue lost to the named churned customer", status="claimed",
-              sources=[sref("doc-churn-notice-jul", "paragraph 1")]),
+              sources=[sref("doc-churn-notice-jul", "paragraph 1")], created_at=_now()),
     ])
     db.commit()
 

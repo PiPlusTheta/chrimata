@@ -38,6 +38,7 @@ class Claim(Base):
     definition = Column(Text, nullable=True)
     status = Column(String)  # claimed | calculated | inferred | conditional
     sources = Column(JSON)  # List[SourceRef]
+    created_at = Column(String, nullable=True)  # insertion-order tiebreak when as_of_date ties (see evidence.py)
 
 
 class Issue(Base):

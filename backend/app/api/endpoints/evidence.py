@@ -130,7 +130,7 @@ def _maybe_open_issue_for_new_claim(db: Session, new_claim: Claim, doc_title: st
     prior = (
         db.query(Claim)
         .filter(Claim.metric == new_claim.metric, Claim.id != new_claim.id, Claim.stated_amount_paise.isnot(None))
-        .order_by(Claim.as_of_date.desc())
+        .order_by(Claim.as_of_date.desc(), Claim.created_at.desc())
         .first()
     )
     if not prior:
@@ -189,6 +189,7 @@ def add_document(payload: DocumentIngestRequest, db: Session = Depends(get_db)):
             stated_amount_paise=c.stated_amount_paise, stated_months=c.stated_months,
             as_of_date=c.as_of_date, definition=c.definition, status=c.status,
             sources=[{"document_id": payload.id, "locator": c.locator, "quote": c.quote}],
+            created_at=datetime.now(timezone.utc).isoformat(),
         )
         db.add(db_claim)
         db.commit()
