@@ -32,8 +32,9 @@ class AgentService:
         self.api_key = os.getenv("XAI_API_KEY") or os.getenv("OPENAI_API_KEY")
         self.base_url = "https://api.x.ai/v1" if os.getenv("XAI_API_KEY") else None
         self.xai_client = OpenAI(api_key=os.getenv("XAI_API_KEY"), base_url="https://api.x.ai/v1") if os.getenv("XAI_API_KEY") else None
-        self.xai_model = os.getenv("XAI_MODEL", "grok-4.7")
-        
+        self.xai_model = os.getenv("XAI_MODEL", "grok-3")
+        if self.xai_model == "grok-beta":
+            self.xai_model = "grok-3"
         if self.api_key:
             if self.base_url:
                 self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)

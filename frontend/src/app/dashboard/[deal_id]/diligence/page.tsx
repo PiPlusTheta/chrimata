@@ -12,7 +12,15 @@ import {
   submitReview,
   retainReview,
   resetDemo,
-  injectJulyEvidence
+  injectJulyEvidence,
+  listChangeReviews,
+  generateEvidenceRequest,
+  listEvidenceRequests,
+  patchEvidenceRequest,
+  getDecisionReceipt,
+  retryRetention as apiRetryRetention,
+  memoryReplay,
+  createAIReview
 } from "../../../../api/client";
 import { useDashboardStore } from "../../../../components/dashboard/store";
 import {
@@ -55,6 +63,13 @@ export default function DiligenceWorkspace() {
 
   const [expandedCalc, setExpandedCalc] = useState<string | null>(null);
 
+  // New features state
+  const [changeReviews, setChangeReviews] = useState<any[]>([]);
+  const [evidenceRequests, setEvidenceRequests] = useState<Record<string, any[]>>({});
+  const [decisionReceipts, setDecisionReceipts] = useState<Record<string, any>>({});
+  const [memoryReplays, setMemoryReplays] = useState<Record<string, any>>({});
+  const [featureLoading, setFeatureLoading] = useState<Record<string, boolean>>({});
+
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
@@ -67,6 +82,22 @@ export default function DiligenceWorkspace() {
       setClaims(cls);
       setDocs(ds);
       setError("");
+
+      // Fetch extra data for new features
+      const crs = await listChangeReviews().catch(() => []);
+      setChangeReviews(crs);
+
+      const erData: Record<string, any[]> = {};
+      const drData: Record<string, any> = {};
+      for (const i of iss) {
+        const er = await listEvidenceRequests(i.id).catch(() => []);
+        if (er.length) erData[i.id] = er;
+        
+        const dr = await getDecisionReceipt(i.id).catch(() => null);
+        if (dr) drData[i.id] = dr;
+      }
+      setEvidenceRequests(erData);
+      setDecisionReceipts(drData);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to load");
     }
@@ -134,6 +165,39 @@ export default function DiligenceWorkspace() {
   const handleRetryRetain = (issueId: string) => {
     const reviewId = savedReviewIds[issueId];
     if (reviewId) attemptRetain(issueId, reviewId);
+  };
+
+  const handleGenerateEvidenceRequest = async (issueId: string) => {
+    setFeatureLoading(prev => ({...prev, [`er_${issueId}`]: true}));
+    try {
+      await generateEvidenceRequest(issueId);
+      await loadData(); // Reload to get the new request
+    } catch (e: any) {
+      alert("Failed to generate evidence request: " + e.message);
+    }
+    setFeatureLoading(prev => ({...prev, [`er_${issueId}`]: false}));
+  };
+
+  const handleMemoryReplay = async (issueId: string) => {
+    setFeatureLoading(prev => ({...prev, [`mr_${issueId}`]: true}));
+    try {
+      const res = await memoryReplay(issueId);
+      setMemoryReplays(prev => ({...prev, [issueId]: res}));
+    } catch (e: any) {
+      alert("Failed to run memory replay: " + e.message);
+    }
+    setFeatureLoading(prev => ({...prev, [`mr_${issueId}`]: false}));
+  };
+
+  const handleAnalyzeNewEvidence = async (docId: string) => {
+    setFeatureLoading(prev => ({...prev, [`analyze_${docId}`]: true}));
+    try {
+      await createAIReview(docId, true);
+      await loadData();
+    } catch (e: any) {
+      alert("Failed to analyze new evidence: " + e.message);
+    }
+    setFeatureLoading(prev => ({...prev, [`analyze_${docId}`]: false}));
   };
 
   if (loading && !summary) return <EmptyState title="Loading Chrimata..." />;
@@ -241,6 +305,80 @@ export default function DiligenceWorkspace() {
                         </div>
                       </div>
 
+                      {/* Feature 3: Decision Receipt */}
+                      {decisionReceipts[iss.id] && (
+                        <div className="mt-4 pt-4 border-t border-outline-dim pl-3 bg-aegean-dark/50 p-3 rounded-lg">
+                          <h4 className="font-mono text-[10px] uppercase text-outline mb-2 flex items-center justify-between">
+                            <span>Decision Receipt</span>
+                            <span className={decisionReceipts[iss.id].retention_status === 'retained' ? 'text-tertiary' : 'text-terra-light'}>
+                              {decisionReceipts[iss.id].retention_status.toUpperCase()}
+                            </span>
+                          </h4>
+                          <div className="text-xs text-on-surface-variant font-mono whitespace-pre-wrap">{decisionReceipts[iss.id].decision_text}</div>
+                          <div className="mt-2 text-[9px] text-outline">Recalled {decisionReceipts[iss.id].recall_count || 0} times by future agents</div>
+                          
+                          <div className="mt-3 flex gap-2">
+                            <Button variant="secondary" onClick={() => handleMemoryReplay(iss.id)} disabled={featureLoading[`mr_${iss.id}`]}>
+                              {featureLoading[`mr_${iss.id}`] ? "Replaying..." : "Test Memory Replay (Sandbox)"}
+                            </Button>
+                          </div>
+                          {memoryReplays[iss.id] && (
+                            <div className="mt-3 p-3 bg-black/40 border border-outline-dim rounded text-xs">
+                              <h5 className="font-semibold text-text-primary mb-2">Memory Effect (Server-side diff):</h5>
+                              {memoryReplays[iss.id].differences.map((diff: any, idx: number) => (
+                                <div key={idx} className="mb-2">
+                                  <div className="text-outline uppercase text-[10px]">{diff.field}</div>
+                                  <div className="flex gap-2">
+                                    <div className="flex-1 bg-terra-alert/10 text-terra-light p-1.5 rounded line-through opacity-80">Without memory: {diff.without_memory}</div>
+                                    <div className="flex-1 bg-tertiary/10 text-tertiary p-1.5 rounded">With memory: {diff.with_memory}</div>
+                                  </div>
+                                </div>
+                              ))}
+                              {memoryReplays[iss.id].memory_used.length > 0 && (
+                                <div className="mt-2 text-[10px] text-bronze">
+                                  Retrieved {memoryReplays[iss.id].memory_used.length} memories for context.
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Feature 2: Evidence Requests */}
+                      {evidenceRequests[iss.id] && evidenceRequests[iss.id].length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-outline-dim pl-3">
+                          <h4 className="font-mono text-[10px] uppercase text-outline mb-2 flex items-center justify-between">
+                            <span>Learned Evidence Requests</span>
+                          </h4>
+                          <div className="flex flex-col gap-2">
+                            {evidenceRequests[iss.id].map((req: any) => (
+                              <div key={req.id} className="bg-aegean-dark border border-outline-dim p-2 rounded text-xs">
+                                <div className="flex justify-between items-start mb-1">
+                                  <span className={`px-1.5 py-0.5 rounded text-[9px] uppercase ${req.status === 'requested' ? 'bg-bronze/20 text-bronze' : req.status === 'received' ? 'bg-tertiary/20 text-tertiary' : 'bg-terra-alert/20 text-terra-light'}`}>{req.status}</span>
+                                </div>
+                                <div className="text-text-primary italic mb-1">"{req.request_text}"</div>
+                                <div className="text-outline text-[10px]">Reasoning: {req.reason}</div>
+                                {req.status === 'requested' && (
+                                  <div className="mt-2 flex gap-1">
+                                    <button className="text-[10px] bg-tertiary/10 text-tertiary px-2 py-1 rounded" onClick={async () => {
+                                      await patchEvidenceRequest(req.id, "received");
+                                      loadData();
+                                    }}>Mark Received</button>
+                                    <button className="text-[10px] bg-terra-alert/10 text-terra-light px-2 py-1 rounded" onClick={async () => {
+                                      const note = prompt("Why was it insufficient?");
+                                      if (note) {
+                                        await patchEvidenceRequest(req.id, "insufficient", note);
+                                        loadData();
+                                      }
+                                    }}>Mark Insufficient</button>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {iss.status !== 'resolved' && (
                         <div className="mt-4 pt-4 border-t border-outline-dim pl-3">
                           <h4 className="font-mono text-[10px] uppercase text-outline mb-2">Analyst Judgment</h4>
@@ -255,6 +393,10 @@ export default function DiligenceWorkspace() {
                             <Input type="text" placeholder="Explanation..." className="flex-1"
                               value={draft.exp} onChange={(e) => setReviewDrafts({...reviewDrafts, [iss.id]: {...draft, exp: e.target.value}})} />
                             <Button variant="primary" onClick={() => handleSubmitReview(iss.id)}>Save</Button>
+                            
+                            <Button variant="secondary" onClick={() => handleGenerateEvidenceRequest(iss.id)} disabled={featureLoading[`er_${iss.id}`]}>
+                              {featureLoading[`er_${iss.id}`] ? "Thinking..." : "Generate AI Request"}
+                            </Button>
                           </div>
                           {rStatus && (
                             <div className="text-xs flex items-center gap-1 mt-2 text-on-surface-variant">
@@ -278,23 +420,91 @@ export default function DiligenceWorkspace() {
               </h2>
               <div className="flex flex-col gap-2 max-h-[420px] overflow-y-auto pr-1">
                 {docs.map(d => (
-                  <button key={d.id} onClick={() => openSource(d.id)} className="text-left flex gap-3 items-center bg-aegean-dark/60 p-2.5 rounded-lg border border-outline-dim hover:border-outline-soft transition-colors">
-                    <div className="w-8 h-8 rounded bg-accent-surface flex items-center justify-center flex-shrink-0 text-outline">
-                      <DocumentText className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center mb-0.5">
-                        <span className="text-xs font-medium text-text-primary truncate">{d.title}</span>
-                        <span className="text-[10px] text-outline font-mono">{d.document_date}</span>
+                  <div key={d.id} className="text-left flex gap-3 items-center bg-aegean-dark/60 p-2.5 rounded-lg border border-outline-dim hover:border-outline-soft transition-colors relative group">
+                    <button onClick={() => openSource(d.id)} className="flex-1 min-w-0 text-left flex gap-3 items-center">
+                      <div className="w-8 h-8 rounded bg-accent-surface flex items-center justify-center flex-shrink-0 text-outline">
+                        <DocumentText className="w-4 h-4" />
                       </div>
-                      <div className="text-[10px] text-on-surface-variant line-clamp-2 [&_.ask-markdown]:text-[10px] [&_p]:my-0 [&_h1]:text-[10px] [&_h2]:text-[10px] [&_ul]:my-0 [&_li]:my-0">
-                        <MarkdownMessage text={d.content} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center mb-0.5">
+                          <span className="text-xs font-medium text-text-primary truncate">{d.title}</span>
+                          <span className="text-[10px] text-outline font-mono">{d.document_date}</span>
+                        </div>
+                        <div className="text-[10px] text-on-surface-variant line-clamp-2 [&_.ask-markdown]:text-[10px] [&_p]:my-0 [&_h1]:text-[10px] [&_h2]:text-[10px] [&_ul]:my-0 [&_li]:my-0">
+                          <MarkdownMessage text={d.content} />
+                        </div>
                       </div>
-                    </div>
-                  </button>
+                    </button>
+                    <button onClick={() => handleAnalyzeNewEvidence(d.id)} disabled={featureLoading[`analyze_${d.id}`]}
+                      className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity bg-bronze/10 text-bronze border border-bronze/20 px-2 py-1 rounded text-[9px] font-mono uppercase">
+                      {featureLoading[`analyze_${d.id}`] ? "Analyzing..." : "Analyze Impact"}
+                    </button>
+                  </div>
                 ))}
               </div>
             </Panel>
+            
+            {/* Feature 1: Memory-Aware "What Changed?" */}
+            {changeReviews.length > 0 && (
+              <Panel className="p-5">
+                <h2 className="font-mono text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <Data className="w-4 h-4 text-bronze" /> Investigation History ("What Changed?")
+                </h2>
+                <div className="flex flex-col gap-4">
+                  {changeReviews.map(cr => (
+                    <div key={cr.id} className="bg-aegean-dark border border-outline-dim rounded-xl p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="text-sm font-semibold text-text-primary">{cr.summary}</div>
+                        <span className={`px-2 py-0.5 text-[9px] font-mono uppercase rounded ${cr.author_type === 'agent' ? 'bg-bronze/20 text-bronze' : 'bg-tertiary/20 text-tertiary'}`}>{cr.author_type} Review</span>
+                      </div>
+                      
+                      {cr.detected_changes?.length > 0 && (
+                        <div className="mt-3">
+                          <div className="text-[10px] uppercase text-outline mb-1 font-mono">Detected Changes:</div>
+                          <ul className="text-xs text-on-surface-variant space-y-1 list-disc pl-4">
+                            {cr.detected_changes.map((dc: any, idx: number) => (
+                              <li key={idx}>
+                                {dc.statement} 
+                                {dc.source_ids?.length > 0 && <span className="text-[9px] text-outline ml-1">({dc.source_ids.join(", ")})</span>}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {(cr.affected_issue_ids?.length > 0 || cr.created_issue_ids?.length > 0) && (
+                        <div className="mt-3 flex gap-4">
+                          {cr.affected_issue_ids.length > 0 && (
+                            <div>
+                              <div className="text-[10px] uppercase text-outline mb-1 font-mono">Affected Issues:</div>
+                              <div className="flex gap-1 flex-wrap">
+                                {cr.affected_issue_ids.map((id: string) => <span key={id} className="bg-terra-alert/10 text-terra-light px-1.5 py-0.5 rounded text-[10px] font-mono">{id}</span>)}
+                              </div>
+                            </div>
+                          )}
+                          {cr.created_issue_ids.length > 0 && (
+                            <div>
+                              <div className="text-[10px] uppercase text-outline mb-1 font-mono">New Issues Opened:</div>
+                              <div className="flex gap-1 flex-wrap">
+                                {cr.created_issue_ids.map((id: string) => <span key={id} className="bg-bronze/10 text-bronze px-1.5 py-0.5 rounded text-[10px] font-mono">{id}</span>)}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {cr.memory_ids_used?.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-outline-dim">
+                          <div className="text-[10px] uppercase text-bronze mb-1 font-mono">Memory Effect:</div>
+                          <div className="text-xs text-on-surface-variant italic">{cr.memory_context_summary}</div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+            )}
+            
           </div>
 
         </div>

@@ -4,12 +4,16 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from app.api.router import api_router
 from app.db.base import Base
 from app.db.session import engine, SessionLocal
 from app.db.seed import reset_db
 from app.models.domain import Document
+from app.models.investigation import ChangeReview, EvidenceRequest, DecisionReceipt  # noqa: F401 — creates tables
 
 Base.metadata.create_all(bind=engine)
 

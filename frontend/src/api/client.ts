@@ -254,3 +254,94 @@ export async function injectJulyEvidence(dealId: string) {
   if (!res.ok) throw new Error("Failed to introduce July evidence");
   return res.json();
 }
+
+// ── Feature 1: Change Reviews ──
+
+export async function createManualCompare(documentIds: string[], periodFrom?: string, periodTo?: string, note?: string) {
+  const res = await fetch(`${API_BASE_URL}/change-reviews/manual`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ document_ids: documentIds, period_from: periodFrom, period_to: periodTo, note }),
+  });
+  if (!res.ok) throw new Error("Failed to create manual comparison");
+  return res.json();
+}
+
+export async function createAIReview(triggerDocumentId: string, memoryEnabled = true) {
+  const res = await fetch(`${API_BASE_URL}/change-reviews/ai`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ trigger_document_id: triggerDocumentId, memory_enabled: memoryEnabled }),
+  });
+  if (!res.ok) throw new Error("Failed to create AI review");
+  return res.json();
+}
+
+export async function listChangeReviews() {
+  const res = await fetch(`${API_BASE_URL}/change-reviews`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to list change reviews");
+  return res.json();
+}
+
+export async function getChangeReview(reviewId: string) {
+  const res = await fetch(`${API_BASE_URL}/change-reviews/${reviewId}`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to get change review");
+  return res.json();
+}
+
+// ── Feature 2: Evidence Requests ──
+
+export async function generateEvidenceRequest(issueId: string, changeReviewId?: string) {
+  const res = await fetch(`${API_BASE_URL}/issues/${issueId}/evidence-request`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ issue_id: issueId, change_review_id: changeReviewId, generated_by: "agent" }),
+  });
+  if (!res.ok) throw new Error("Failed to generate evidence request");
+  return res.json();
+}
+
+export async function listEvidenceRequests(issueId: string) {
+  const res = await fetch(`${API_BASE_URL}/issues/${issueId}/evidence-requests`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to list evidence requests");
+  return res.json();
+}
+
+export async function patchEvidenceRequest(requestId: string, status: string, outcomeNote?: string) {
+  const res = await fetch(`${API_BASE_URL}/evidence-requests/${requestId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status, outcome_note: outcomeNote }),
+  });
+  if (!res.ok) throw new Error("Failed to update evidence request");
+  return res.json();
+}
+
+// ── Feature 3: Decision Receipts & Memory Replay ──
+
+export async function getDecisionReceipt(issueId: string) {
+  const res = await fetch(`${API_BASE_URL}/issues/${issueId}/decision-receipt`, { cache: "no-store" });
+  if (!res.ok) {
+    if (res.status === 404) return null;
+    throw new Error("Failed to get decision receipt");
+  }
+  return res.json();
+}
+
+export async function retryRetention(issueId: string) {
+  const res = await fetch(`${API_BASE_URL}/issues/${issueId}/decision-receipt/retry-retention`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error("Failed to retry retention");
+  return res.json();
+}
+
+export async function memoryReplay(issueId: string, triggerDocumentId?: string) {
+  const res = await fetch(`${API_BASE_URL}/issues/${issueId}/memory-replay`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ trigger_document_id: triggerDocumentId }),
+  });
+  if (!res.ok) throw new Error("Failed to run memory replay");
+  return res.json();
+}

@@ -3,6 +3,7 @@ import pathlib
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.models.domain import Document, Claim, Issue, Review, Deal, ChatSession, ChatMessage
+from app.models.investigation import ChangeReview, EvidenceRequest, DecisionReceipt
 
 DATA_DIR = pathlib.Path(__file__).resolve().parents[3] / "data" / "demo"
 
@@ -225,6 +226,9 @@ def _seed_brutal_cases(db: Session, deal_id: str):
 def reset_db(db: Session) -> str:
     """Wipe and reseed every deal. Returns Northstar's run_id (the primary/default
     deal most existing tests and the golden-path demo script are anchored to)."""
+    db.query(DecisionReceipt).delete()
+    db.query(EvidenceRequest).delete()
+    db.query(ChangeReview).delete()
     db.query(ChatMessage).delete()
     db.query(ChatSession).delete()
     db.query(Review).delete()

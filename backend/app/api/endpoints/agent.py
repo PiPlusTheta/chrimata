@@ -143,6 +143,18 @@ async def retain_review(req: RetainReviewRequest, db: Session = Depends(get_db))
     from app.api.endpoints.evidence import set_review_memory_status
     updated = set_review_memory_status(db, review.id, "retained" if success else "failed")
 
+    # Feature 3: Auto-create a DecisionReceipt for this review
+    try:
+        from app.services.investigation_memory import InvestigationMemoryService
+        from app.services.decision_receipt import DecisionReceiptService
+        memory_svc = InvestigationMemoryService(hindsight_adapter)
+        receipt_svc = DecisionReceiptService(memory_svc)
+        receipt = receipt_svc.create_receipt(db, run_id, review.issue_id, review.id)
+        if success:
+            await receipt_svc.retain_decision(db, bank_id, receipt.id)
+    except Exception as e:
+        print(f"DecisionReceipt creation warning: {e}")
+
     return RetainReviewResponse(status=updated.memory_status)
 
 @router.post("/new-session", response_model=NewSessionResponse)

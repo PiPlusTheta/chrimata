@@ -33,6 +33,13 @@ def _resolve_hindsight_provider():
             "https://openrouter.ai/api/v1",
             os.getenv("HINDSIGHT_LLM_MODEL", _DEFAULT_OPENROUTER_MODEL),
         )
+    if os.getenv("XAI_API_KEY"):
+        return (
+            "openai",
+            os.getenv("XAI_API_KEY"),
+            "https://api.x.ai/v1",
+            os.getenv("HINDSIGHT_LLM_MODEL", "grok-3"),
+        )
     for provider in _HINDSIGHT_PROVIDERS:
         key = os.getenv(f"{provider.upper()}_API_KEY")
         if key:
