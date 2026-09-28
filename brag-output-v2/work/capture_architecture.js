@@ -1,0 +1,27 @@
+const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
+const BASE = 'http://localhost:3000';
+const OUT = path.join(__dirname, 'frames', 's12_architecture');
+fs.mkdirSync(OUT, { recursive: true });
+for (const f of fs.readdirSync(OUT)) fs.unlinkSync(path.join(OUT, f));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const ease = (t) => t < .5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+const cursorStyle = `(()=>{const s=document.createElement('style');s.textContent='#__cur{position:fixed;z-index:2147483647;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#E5C79E,#C5A880 55%,#8A7456);box-shadow:0 0 14px 3px rgba(197,168,128,.55),0 2px 6px rgba(0,0,0,.6);border:1.5px solid rgba(7,12,20,.6);pointer-events:none;transform:translate(-50%,-50%);left:-100px;top:-100px}#__cur.down{transform:translate(-50%,-50%) scale(.62)}';document.head.appendChild(s);const c=document.createElement('div');c.id='__cur';document.body.appendChild(c);window.__cur=(x,y,d)=>{c.style.left=x+'px';c.style.top=y+'px';c.classList.toggle('down',!!d)}})()`;
+(async()=>{
+ const browser=await puppeteer.launch({headless:'new',args:['--no-sandbox','--disable-setuid-sandbox','--force-device-scale-factor=1']});
+ const page=await browser.newPage(); await page.setViewport({width:1920,height:1080,deviceScaleFactor:1});
+ await page.goto(BASE+'/dashboard',{waitUntil:'networkidle0'}); await sleep(800); await page.evaluate(cursorStyle);
+ let x=960,y=540, i=0; const fps=12.5, start=Date.now(); let running=true;
+ const recorder=(async()=>{while(running){const target=start+i*1000/fps;await page.screenshot({path:path.join(OUT,`f${String(i++).padStart(5,'0')}.png`)});await sleep(Math.max(0,target+1000/fps-Date.now()));}})();
+ const move=async(tx,ty,d=.8)=>{const sx=x,sy=y,n=Math.round(d*18);for(let j=1;j<=n;j++){let t=ease(j/n);x=sx+(tx-sx)*t;y=sy+(ty-sy)*t;await page.mouse.move(x,y);await page.evaluate(([a,b])=>window.__cur?.(a,b,false),[x,y]);await sleep(d*1000/n)}};
+ const click=async(tx,ty)=>{await move(tx,ty);await page.evaluate(([a,b])=>window.__cur?.(a,b,true),[tx,ty]);await page.mouse.click(tx,ty);await sleep(120);await page.evaluate(([a,b])=>window.__cur?.(a,b,false),[tx,ty]);x=tx;y=ty};
+ const nav=await page.evaluate(()=>{const a=[...document.querySelectorAll('a')].find(x=>x.innerText.includes('Architecture Map'));if(!a)return null;const r=a.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2}});
+ if(!nav) throw new Error('Architecture Map link not found on dashboard.');
+ await sleep(500); await click(nav.x,nav.y); await page.waitForNavigation({waitUntil:'networkidle0',timeout:12000}).catch(()=>{}); await sleep(650);
+ const button=await page.evaluate(()=>{const b=[...document.querySelectorAll('button')].find(x=>x.innerText.includes('Simulate Analyst Workflow'));if(!b)return null;const r=b.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2}});
+ if(!button) throw new Error('Simulation button not found on Architecture page.');
+ await move(button.x,button.y,.7); await sleep(450); await click(button.x,button.y); await sleep(26000);
+ running=false; await recorder; await browser.close();
+ const seconds=i/fps; fs.writeFileSync(path.join(__dirname,'architecture_capture.json'),JSON.stringify({frames:i,fps,seconds},null,2)); console.log(`Captured ${i} frames at ${fps} fps (${seconds.toFixed(2)}s).`);
+})().catch(e=>{console.error(e.message);process.exit(1)});

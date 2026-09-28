@@ -1,0 +1,3 @@
+file '/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s07_whatchanged_seg0.mp4'
+file '/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s07_whatchanged_seg1.mp4'
+file '/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s07_whatchanged_seg2.mp4'

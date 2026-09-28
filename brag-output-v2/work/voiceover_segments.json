@@ -1,0 +1,86 @@
+[
+  {
+    "id": "vo01_open",
+    "start": 0.3,
+    "end": 4.55,
+    "emotion": "[confident, warm]",
+    "text": "Every deal has a story. And every decision leaves a trail."
+  },
+  {
+    "id": "vo02_landing",
+    "start": 4.95,
+    "end": 12.9,
+    "emotion": "[upbeat, inviting]",
+    "text": "Meet Chrimata. Due diligence rebuilt around the evidence, the context, and every decision that follows."
+  },
+  {
+    "id": "vo03_enter",
+    "start": 13.5,
+    "end": 15.9,
+    "emotion": "[conversational]",
+    "text": "All right, let's step inside."
+  },
+  {
+    "id": "vo04_dashboard",
+    "start": 16.25,
+    "end": 20.55,
+    "emotion": "[bright, confident]",
+    "text": "And here, every live mandate—clear at a glance."
+  },
+  {
+    "id": "vo05_queue",
+    "start": 21.0,
+    "end": 26.45,
+    "emotion": "[assured]",
+    "text": "And from there, the review queue links each open question to the evidence behind it."
+  },
+  {
+    "id": "vo06_evidence",
+    "start": 27.1,
+    "end": 38.9,
+    "emotion": "[engaged, clear]",
+    "text": "So, follow a claim back to its source. One click brings up the document, the exact page, the evidence. No more hunting through folders. No guesswork."
+  },
+  {
+    "id": "vo07_changes",
+    "start": 39.5,
+    "end": 50.7,
+    "emotion": "[building energy, confident]",
+    "text": "And now, new evidence lands. See what changed, and which findings it touches. Your team can keep moving without starting the review over. No lost context."
+  },
+  {
+    "id": "vo08_hindsight",
+    "start": 54.8,
+    "end": 66.85,
+    "emotion": "[warm, thoughtful]",
+    "text": "And then there’s Hindsight. It remembers why decisions were made, not just what. So when a familiar issue returns, the reasoning is already there, when it matters most."
+  },
+  {
+    "id": "vo09_ask",
+    "start": 71.0,
+    "end": 82.65,
+    "emotion": "[curious, upbeat]",
+    "text": "And when it’s time to ask a question, just ask in plain language. Chrimata brings in the history, the evidence, the context—so your answer actually moves the work forward."
+  },
+  {
+    "id": "vo10_grounded",
+    "start": 82.95,
+    "end": 86.4,
+    "emotion": "[confident]",
+    "text": "Every answer, grounded in the source."
+  },
+  {
+    "id": "vo11_close",
+    "start": 121.99,
+    "end": 127.0,
+    "emotion": "[warm, assured]",
+    "text": "Chrimata. Due diligence, rebuilt for the intelligence era."
+  },
+  {
+    "id": "vo12_architecture",
+    "start": 92.0,
+    "end": 120.0,
+    "emotion": "[engaged, confident, clear; build emphasis through the flow]",
+    "text": "Here’s the flow. The interface sends an analyst’s decision through the API gateway—over REST, or as a live stream. The gateway routes review pipelines for change reviews and evidence requests, or sends questions to the Ask agent. PostgreSQL tracks each ticket and status. Hindsight retains the decision and reasoning, then recalls past outcomes when similar issues return."
+  }
+]

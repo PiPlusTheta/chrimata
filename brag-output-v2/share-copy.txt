@@ -1,0 +1,1 @@
+Due diligence has a memory problem: every review starts from zero, even when the evidence didn't. Chrimata keeps the trail — every claim traced to its source, every analyst decision retained, every new document checked against what was decided before. Ask it what changed since your last review, and it doesn't guess. It recalls.

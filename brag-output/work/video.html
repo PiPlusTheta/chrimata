@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+  body {
+    margin: 0;
+    padding: 0;
+    width: 1920px;
+    height: 1080px;
+    background: #000;
+    font-family: 'Inter', sans-serif;
+    color: #ffffff;
+    overflow: hidden;
+    position: relative;
+  }
+  .scene {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    opacity: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .screenshot {
+    width: 1920px; 
+    height: auto;
+    position: absolute;
+    top: 0; left: 0;
+    transform-origin: top center;
+  }
+  .overlay-text {
+    position: absolute;
+    bottom: 100px; left: 100px;
+    font-size: 56px;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(15, 17, 21, 0.9);
+    padding: 30px 50px;
+    border-left: 8px solid #3b82f6;
+    border-radius: 8px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+    opacity: 0;
+    transform: translateY(20px);
+    z-index: 100;
+  }
+  .center-text {
+    position: absolute;
+    font-size: 80px;
+    font-weight: 800;
+    text-align: center;
+    z-index: 100;
+  }
+  .outro-logo, .intro-logo {
+    width: 600px;
+  }
+</style>
+</head>
+<body>
+
+  <!-- SCENE 1: Opening (0-5s) -->
+  <div id="scene1" class="scene" style="background: #0f1115;">
+    <img id="intro-logo" class="intro-logo" src="../../frontend/public/logo.png" />
+    <div id="intro-txt" class="center-text" style="bottom: 300px; font-size:40px; color:#94a3b8; font-weight:400;">Every decision has a history.</div>
+  </div>
+
+  <!-- SCENE 2: Landing (5-17s) -->
+  <div id="scene2" class="scene">
+    <img id="img2" class="screenshot" src="screens_full/landing.png" />
+  </div>
+
+  <!-- SCENE 3: Dashboard (17-29s) -->
+  <div id="scene3" class="scene">
+    <img id="img3" class="screenshot" src="screens_full/dashboard.png" />
+    <div id="txt3" class="overlay-text">The deal room, re-imagined.</div>
+  </div>
+
+  <!-- SCENE 4: Diligence (29-41s) -->
+  <div id="scene4" class="scene">
+    <img id="img4" class="screenshot" src="screens_full/diligence.png" />
+    <div id="txt4" class="overlay-text">Investigate information architecture.</div>
+  </div>
+
+  <!-- SCENE 5: Evidence (41-53s) -->
+  <div id="scene5" class="scene">
+    <img id="img5" class="screenshot" src="screens_full/evidence.png" />
+    <div id="txt5" class="overlay-text">Trace conclusions back to raw evidence.</div>
+  </div>
+
+  <!-- SCENE 6: What Changed (53-67s) -->
+  <div id="scene6" class="scene">
+    <img id="img6" class="screenshot" src="screens_full/queue.png" />
+    <div id="txt6" class="overlay-text">"What changed?" Track discrepancies instantly.</div>
+  </div>
+
+  <!-- SCENE 7: Memory (67-77s) -->
+  <div id="scene7" class="scene">
+    <img id="img7" class="screenshot" src="screens_full/evidence.png" style="filter: blur(10px) brightness(0.5);" />
+    <div id="txt7" class="center-text" style="width: 1200px; top: 30%; font-size:64px;">
+      <span style="color:#3b82f6">Hindsight Memory</span><br><br>
+      <span style="font-size:40px; font-weight:400; color:#cbd5e1; line-height:1.5;">
+        Past evidence &rarr; Past reasoning<br>
+        New evidence arrives &rarr; Recalls context<br>
+        Change identified &rarr; Updated review
+      </span>
+    </div>
+  </div>
+
+  <!-- SCENE 8: Ask (77-89s) -->
+  <div id="scene8" class="scene">
+    <img id="img8" class="screenshot" src="screens_full/ask.png" />
+    <div id="txt8" class="overlay-text">Ask with context. Memory that survives the conversation.</div>
+  </div>
+
+  <!-- SCENE 9: Outro (89-95s) -->
+  <div id="scene9" class="scene" style="background: #0f1115;">
+    <img class="outro-logo" src="../../frontend/public/logo.png" />
+  </div>
+
+<script>
+  window.seek = function(t) {
+    const s = [
+      document.getElementById('scene1'), document.getElementById('scene2'),
+      document.getElementById('scene3'), document.getElementById('scene4'),
+      document.getElementById('scene5'), document.getElementById('scene6'),
+      document.getElementById('scene7'), document.getElementById('scene8'),
+      document.getElementById('scene9')
+    ];
+    
+    // Reset all
+    s.forEach(scene => scene.style.opacity = 0);
+    const easeOut = x => 1 - Math.pow(1 - x, 3);
+    const easeInOut = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    const progress = (time, start, end) => clamp((time - start) / (end - start), 0, 1);
+
+    const applyFade = (scene, time, start, end, fadeDur = 0.5) => {
+      let pIn = progress(time, start, start + fadeDur);
+      let pOut = progress(time, end - fadeDur, end);
+      scene.style.opacity = pIn * (1 - pOut);
+    };
+
+    const applyTextFade = (txt, time, start, end) => {
+      if(!txt) return;
+      let pIn = progress(time, start, start + 0.5);
+      let pOut = progress(time, end - 0.5, end);
+      txt.style.opacity = pIn * (1 - pOut);
+      txt.style.transform = `translateY(${20 - 20 * easeOut(pIn)}px)`;
+    };
+
+    // 1: Opening (0-5s)
+    if(t >= 0 && t < 5.5) {
+      applyFade(s[0], t, 0, 5);
+      applyTextFade(document.getElementById('intro-txt'), t, 1, 4.5);
+      const l = document.getElementById('intro-logo');
+      l.style.transform = `scale(${1 + 0.05 * progress(t, 0, 5)})`;
+    }
+    
+    // 2: Landing (4.5-17.5s)
+    if(t >= 4.5 && t < 17.5) {
+      applyFade(s[1], t, 4.5, 17);
+      const img = document.getElementById('img2');
+      // Scroll down
+      let p = easeInOut(progress(t, 6, 15));
+      img.style.transform = `translateY(${-p * 1500}px)`; // scroll assuming long page
+    }
+
+    // 3: Dashboard (16.5-29.5s)
+    if(t >= 16.5 && t < 29.5) {
+      applyFade(s[2], t, 16.5, 29);
+      const img = document.getElementById('img3');
+      let p = progress(t, 16.5, 29);
+      img.style.transform = `scale(${1.0 + 0.1 * p})`;
+      applyTextFade(document.getElementById('txt3'), t, 18, 28);
+    }
+
+    // 4: Diligence (28.5-41.5s)
+    if(t >= 28.5 && t < 41.5) {
+      applyFade(s[3], t, 28.5, 41);
+      const img = document.getElementById('img4');
+      let p = progress(t, 28.5, 41);
+      img.style.transform = `scale(${1.1}) translateY(${-p * 200}px)`;
+      applyTextFade(document.getElementById('txt4'), t, 30, 40);
+    }
+
+    // 5: Evidence (40.5-53.5s)
+    if(t >= 40.5 && t < 53.5) {
+      applyFade(s[4], t, 40.5, 53);
+      const img = document.getElementById('img5');
+      let p = progress(t, 40.5, 53);
+      img.style.transform = `scale(${1.05 + 0.1 * p}) translateX(${-p * 100}px)`;
+      applyTextFade(document.getElementById('txt5'), t, 42, 52);
+    }
+
+    // 6: Queue / What Changed (52.5-67.5s)
+    if(t >= 52.5 && t < 67.5) {
+      applyFade(s[5], t, 52.5, 67);
+      const img = document.getElementById('img6');
+      let p = progress(t, 52.5, 67);
+      img.style.transform = `scale(${1.0 + 0.05 * p})`;
+      applyTextFade(document.getElementById('txt6'), t, 54, 66);
+    }
+
+    // 7: Memory (66.5-77.5s)
+    if(t >= 66.5 && t < 77.5) {
+      applyFade(s[6], t, 66.5, 77);
+      applyTextFade(document.getElementById('txt7'), t, 67, 76);
+    }
+
+    // 8: Ask (76.5-89.5s)
+    if(t >= 76.5 && t < 89.5) {
+      applyFade(s[7], t, 76.5, 89);
+      const img = document.getElementById('img8');
+      let p = progress(t, 76.5, 89);
+      img.style.transform = `scale(${1.05}) translateY(${-p * 300}px)`;
+      applyTextFade(document.getElementById('txt8'), t, 78, 88);
+    }
+
+    // 9: Outro (88.5-95s)
+    if(t >= 88.5 && t <= 95) {
+      applyFade(s[8], t, 88.5, 95);
+    }
+  };
+</script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+[
+  {
+    "name": "s02_landing",
+    "frames": 0,
+    "fps": 12.5,
+    "seconds": 0,
+    "skipped": true
+  },
+  {
+    "name": "s03_enter",
+    "frames": 0,
+    "fps": 12.5,
+    "seconds": 0,
+    "skipped": true
+  },
+  {
+    "name": "s04_dashboard",
+    "frames": 59,
+    "fps": 12.5,
+    "seconds": 4.72
+  },
+  {
+    "name": "s05_queue",
+    "frames": 75,
+    "fps": 12.5,
+    "seconds": 6
+  },
+  {
+    "name": "s06_diligence",
+    "frames": 154,
+    "fps": 12.5,
+    "seconds": 12.32
+  },
+  {
+    "name": "s07_whatchanged",
+    "frames": 250,
+    "fps": 12.5,
+    "seconds": 20
+  },
+  {
+    "name": "s08_hindsight",
+    "frames": 282,
+    "fps": 12.5,
+    "seconds": 22.56
+  },
+  {
+    "name": "s09_ask",
+    "frames": 369,
+    "fps": 12.5,
+    "seconds": 29.52
+  },
+  {
+    "name": "s10_breadth",
+    "frames": 46,
+    "fps": 12.5,
+    "seconds": 3.68
+  },
+  {
+    "name": "s11_return",
+    "frames": 22,
+    "fps": 12.5,
+    "seconds": 1.76
+  }
+]

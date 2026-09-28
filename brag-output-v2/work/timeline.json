@@ -1,0 +1,77 @@
+{
+  "total": 93.899999,
+  "scenes": [
+    {
+      "name": "s01_open",
+      "clip": "/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s01_open_base.mp4",
+      "start": 0,
+      "duration": 4.6
+    },
+    {
+      "name": "s02_landing",
+      "clip": "/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s02_landing_ramped.mp4",
+      "start": 4.6,
+      "duration": 8.733
+    },
+    {
+      "name": "s03_enter",
+      "clip": "/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s03_enter_base.mp4",
+      "start": 13.333,
+      "duration": 2.733
+    },
+    {
+      "name": "s04_dashboard",
+      "clip": "/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s04_dashboard_base.mp4",
+      "start": 16.067,
+      "duration": 4.733
+    },
+    {
+      "name": "s05_queue",
+      "clip": "/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s05_queue_base.mp4",
+      "start": 20.8,
+      "duration": 6
+    },
+    {
+      "name": "s06_diligence",
+      "clip": "/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s06_diligence_base.mp4",
+      "start": 26.8,
+      "duration": 12.333
+    },
+    {
+      "name": "s07_whatchanged",
+      "clip": "/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s07_whatchanged_ramped.mp4",
+      "start": 39.133,
+      "duration": 12.133
+    },
+    {
+      "name": "s08_hindsight",
+      "clip": "/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s08_hindsight_ramped.mp4",
+      "start": 51.267,
+      "duration": 15.833
+    },
+    {
+      "name": "s09_ask",
+      "clip": "/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s09_ask_ramped.mp4",
+      "start": 67.1,
+      "duration": 15.767
+    },
+    {
+      "name": "s10_breadth",
+      "clip": "/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s10_breadth_base.mp4",
+      "start": 82.867,
+      "duration": 3.667
+    },
+    {
+      "name": "s11_return",
+      "clip": "/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s11_return_base.mp4",
+      "start": 86.533,
+      "duration": 1.767
+    },
+    {
+      "name": "s12_close",
+      "clip": "/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s12_close_base.mp4",
+      "start": 88.3,
+      "duration": 5.6
+    }
+  ]
+}
