@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Category, Hierarchy, ArchiveBook, MessageProgramming, HambergerMenu, StatusUp, Bank, ArrowRight2, ArrowLeft2, CloseCircle, ArrowDown2 } from "iconsax-react";
+import { Home, Category, Hierarchy, ArchiveBook, MessageProgramming, HambergerMenu, StatusUp, Bank, ArrowRight2, ArrowLeft2, CloseCircle, ArrowDown2 } from "iconsax-react";
 
 import { getDashboardNav, ROUTES } from "../../routes";
 import { useDashboardStore } from "./store";
@@ -108,6 +108,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <nav className="flex flex-col gap-1 px-3" aria-label="Primary">
+            <Link href="/dashboard" onClick={() => setMenuOpen(false)} aria-current={pathname === "/dashboard" ? "page" : undefined} className={`dashboard-nav-link ${pathname === "/dashboard" ? "is-active" : ""}`}>
+              <span className="flex items-center gap-2.5">
+                <span className="flex items-center justify-center w-[18px] h-[18px]"><Home size={18} variant="Linear" color="currentColor" /></span>
+                <span className="nav-label">All Mandates</span>
+              </span>
+            </Link>
             {nav.map((item) => {
               const active = pathname === item.href;
               return <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)} aria-current={active ? "page" : undefined} className={`dashboard-nav-link ${active ? "is-active" : ""}`}>
@@ -128,14 +134,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="dashboard-topbar">
           <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             <button className="dashboard-menu-button" type="button" onClick={() => setMenuOpen(true)} aria-label="Open navigation" aria-expanded={menuOpen}><HambergerMenu size={24} variant="Linear" color="currentColor" /></button>
-            <div className="flex min-w-0 items-center gap-3"><img src="/logo.png" alt="Logo" className="h-4 w-auto object-contain" /><span className="font-display text-lg font-light tracking-tight text-on-surface">Chrimata</span><span className="hidden h-4 w-px bg-accent-border sm:block" /><span className="hidden truncate font-headline text-lg font-light tracking-tight text-on-surface sm:inline">Institutional Terminal</span></div>
+            <Link href="/dashboard" className="flex min-w-0 items-center gap-3 hover:opacity-80 transition-opacity">
+              <img src="/logo.png" alt="Logo" className="h-4 w-auto object-contain" />
+              <span className="font-display text-lg font-light tracking-tight text-on-surface">Chrimata</span>
+              <span className="hidden h-4 w-px bg-accent-border sm:block" />
+              <span className="hidden truncate font-headline text-lg font-light tracking-tight text-on-surface sm:inline">Institutional Terminal</span>
+            </Link>
             <div className="hidden items-center gap-2 rounded-full border border-hairline bg-accent-surface/70 px-2.5 py-1 md:flex"><span className={`h-1.5 w-1.5 rounded-full ${backendOnline ? "bg-tertiary" : "bg-terra-light"}`} /><span className="font-mono text-[10px] font-medium tracking-wide text-on-surface-variant">{backendOnline ? "DATA SERVICE CONNECTED" : "DATA SERVICE UNAVAILABLE"}</span></div>
           </div>
           <div className="flex items-center gap-4 lg:gap-6">
             <div className="flex items-center gap-3"><div className="hidden text-right sm:block"><div className="text-xs font-semibold leading-snug text-on-surface">{summary?.company_name ?? "Chrimata"}</div><div className="font-mono text-[10px] text-on-surface-variant">Diligence Workspace</div></div><span className="flex h-8 w-8 items-center justify-center rounded-full border border-accent-border bg-accent-surface text-secondary"><Bank size={17} variant="Linear" color="currentColor" /></span></div>
           </div>
         </header>
-        <main id="main-content" className="dashboard-content"><nav aria-label="Breadcrumb" className="dashboard-breadcrumb"><span>Dashboard</span><span aria-hidden="true">/</span><span aria-current="page">{nav.find(item => item.href === pathname)?.label}</span></nav>{children}</main>
+        <main id="main-content" className="dashboard-content"><nav aria-label="Breadcrumb" className="dashboard-breadcrumb"><span>Dashboard</span>{pathname !== "/dashboard" && <><span aria-hidden="true">/</span><span aria-current="page">{nav.find(item => item.href === pathname)?.label}</span></>}</nav>{children}</main>
       </div>
     </div>
   );

@@ -17,7 +17,6 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
-      { source: "/dashboard", destination: "/dashboard/northstar/queue", permanent: true },
       { source: "/dashboard/workspace", destination: "/dashboard/northstar/diligence", permanent: true },
       { source: "/dashboard/ingest", destination: "/dashboard/northstar/evidence", permanent: true },
     ];

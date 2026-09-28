@@ -93,7 +93,7 @@ export default function LandingPage() {
               <a className="w-full sm:w-auto px-8 py-3.5 bg-bronze text-aegean-dark font-sans text-sm font-semibold tracking-wider uppercase hover:bg-bronze-hover transition-all duration-200 shadow-glow-bronze text-center" href="#request-access">
                 Request Institutional Access
               </a>
-              <Link className="w-full sm:w-auto px-8 py-3.5 bg-aegean-surface/80 border border-outline-soft/60 hover:border-bronze/40 text-text-primary font-sans text-sm font-medium tracking-wide flex items-center justify-center gap-2.5 transition-all duration-200 text-center" href={ROUTES.queue("northstar")}>
+              <Link className="w-full sm:w-auto px-8 py-3.5 bg-aegean-surface/80 border border-outline-soft/60 hover:border-bronze/40 text-text-primary font-sans text-sm font-medium tracking-wide flex items-center justify-center gap-2.5 transition-all duration-200 text-center" href="/dashboard">
                 <span className="material-symbols-outlined text-base text-bronze">terminal</span>
                 <span className="">Inspect Verification Terminal</span>
               </Link>
