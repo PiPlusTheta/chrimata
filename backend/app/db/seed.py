@@ -299,6 +299,9 @@ def _add_claim(
     amount_paise: Optional[int] = None,
     stated_months: Optional[str] = None,
     status: str = "claimed",
+    currency_code: Optional[str] = None,
+    original_amount_minor: Optional[int] = None,
+    fx_rate_to_inr: Optional[str] = None,
 ) -> str:
     claim_id = f"{deal_id}-{claim_suffix}"
     kwargs = dict(
@@ -316,6 +319,12 @@ def _add_claim(
         kwargs["stated_amount_paise"] = amount_paise
     if stated_months is not None:
         kwargs["stated_months"] = stated_months
+    if currency_code is not None:
+        kwargs["currency_code"] = currency_code
+    if original_amount_minor is not None:
+        kwargs["original_amount_minor"] = original_amount_minor
+    if fx_rate_to_inr is not None:
+        kwargs["fx_rate_to_inr"] = fx_rate_to_inr
     db.add(Claim(**kwargs))
     return claim_id
 
@@ -743,7 +752,7 @@ def _seed_usage_based(db: Session, deal_id: str):
 
 
 def _seed_multi_currency(db: Session, deal_id: str):
-    doc = _add_document(
+    usd_doc = _add_document(
         db, deal_id, "doc-usd-contract", "US Enterprise Contract", "contract", "2026-03-31",
         "Contracted subscription: USD 10,000/month. Treasury normalization for the seed uses ₹87.50/USD, i.e. ₹8.75 lakh/month.",
     )
@@ -751,7 +760,22 @@ def _seed_multi_currency(db: Session, deal_id: str):
         db, deal_id=deal_id, claim_suffix="claim-usd-mrr-normalized", metric="foreign_currency_mrr",
         original_text="USD 10,000/month; normalized at ₹87.50/USD to ₹8.75 lakh.", amount_paise=lakh(8.75),
         as_of_date="2026-03-31", definition="Foreign-currency recurring revenue normalized to INR at the stated FX rate",
-        sources=[sref(doc, "sentence 1")],
+        sources=[sref(usd_doc, "sentence 1")],
+        currency_code="USD", original_amount_minor=10_000_00, fx_rate_to_inr="87.50",
+    )
+
+    # A second currency on the same deal, different FX rate and reporting date —
+    # confirms currency handling isn't a single-hardcoded-rate special case.
+    eur_doc = _add_document(
+        db, deal_id, "doc-eur-contract", "EU Enterprise Contract", "contract", "2026-04-10",
+        "Contracted subscription: EUR 6,000/month. Treasury normalization uses ₹95.20/EUR, i.e. ₹5.71 lakh/month.",
+    )
+    _add_claim(
+        db, deal_id=deal_id, claim_suffix="claim-eur-mrr-normalized", metric="foreign_currency_mrr",
+        original_text="EUR 6,000/month; normalized at ₹95.20/EUR to ₹5.71 lakh.", amount_paise=lakh(5.712),
+        as_of_date="2026-04-10", definition="Foreign-currency recurring revenue normalized to INR at the stated FX rate",
+        sources=[sref(eur_doc, "sentence 1")],
+        currency_code="EUR", original_amount_minor=6_000_00, fx_rate_to_inr="95.20",
     )
     db.commit()
 
@@ -970,6 +994,14 @@ def _seed_hostile_text(db: Session, deal_id: str):
         db, deal_id=deal_id, claim_suffix="claim-long-text", metric="analyst_note",
         original_text=long_text, amount_paise=0, as_of_date="2026-04-18",
         definition="UI truncation/search robustness fixture", sources=[sref(doc, "full document")],
+    )
+
+    # A scanned artifact with no recoverable date stamp — document_date is
+    # genuinely null, not an empty string. Exercises the Document.document_date
+    # nullable path end-to-end (seed, API response, and UI rendering).
+    _add_document(
+        db, deal_id, "doc-undated-scan", "Undated Scanned Ledger Fragment", "ledger", None,
+        "Poorly scanned ledger page. Header with the reporting date did not survive OCR; figures below are unverified without a date.",
     )
     db.commit()
 

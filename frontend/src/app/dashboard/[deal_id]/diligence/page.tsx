@@ -23,6 +23,7 @@ import {
   createAIReview
 } from "../../../../api/client";
 import { useDashboardStore } from "../../../../components/dashboard/store";
+import { formatPaise } from "../../../../lib/format";
 import {
   DocumentText,
   Refresh2,
@@ -103,12 +104,6 @@ export default function DiligenceWorkspace() {
     }
     setLoading(false);
   }
-
-  const formatPaise = (paise: number) => {
-    if (paise >= 1000000000) return `₹${(paise / 1000000000).toFixed(2)} Cr`;
-    if (paise >= 10000000) return `₹${(paise / 10000000).toFixed(2)} L`;
-    return `₹${(paise / 100).toFixed(0)}`;
-  };
 
   const handleReset = async () => {
     await resetDemo();

@@ -24,7 +24,7 @@ class Document(Base):
     title = Column(String)
     type = Column(String)
     version = Column(String)
-    document_date = Column(String)
+    document_date = Column(String, nullable=True)  # some ingested documents genuinely lack a stated date
     period_start = Column(String, nullable=True)
     period_end = Column(String, nullable=True)
     ingested_at = Column(String)
@@ -40,6 +40,9 @@ class Claim(Base):
     metric = Column(String)
     original_text = Column(Text)
     stated_amount_paise = Column(BigInteger, nullable=True)  # Integer overflows past ~₹21.5L; use BigInteger
+    currency_code = Column(String, nullable=True, default="INR")  # ISO 4217 of the ORIGINAL source figure; stated_amount_paise is always INR-normalized
+    original_amount_minor = Column(BigInteger, nullable=True)  # the source figure in its own currency's minor unit, before INR normalization
+    fx_rate_to_inr = Column(String, nullable=True)  # rate used for normalization, stored as text to avoid float precision loss
     stated_months = Column(String, nullable=True)
     as_of_date = Column(String)
     definition = Column(Text, nullable=True)

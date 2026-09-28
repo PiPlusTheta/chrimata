@@ -122,8 +122,20 @@ def get_summary(deal_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/deals/{deal_id}/documents", response_model=List[DocumentSchema])
-def get_documents(deal_id: str, db: Session = Depends(get_db)):
-    return db.query(Document).filter(Document.deal_id == deal_id).all()
+def get_documents(deal_id: str, q: str | None = None, db: Session = Depends(get_db)):
+    """`q` performs a server-side, case-insensitive search across title, type, id
+    and content — this is what actually scales once a deal has more than a
+    handful of documents; the frontend no longer filters the full array client-side."""
+    query = db.query(Document).filter(Document.deal_id == deal_id)
+    if q and q.strip():
+        term = f"%{q.strip()}%"
+        query = query.filter(
+            (Document.title.ilike(term))
+            | (Document.type.ilike(term))
+            | (Document.id.ilike(term))
+            | (Document.content.ilike(term))
+        )
+    return query.order_by(Document.document_date).all()
 
 
 @router.get("/deals/{deal_id}/documents/{document_id}", response_model=DocumentSchema)
@@ -213,6 +225,7 @@ def add_document(deal_id: str, payload: DocumentIngestRequest, db: Session = Dep
         db_claim = Claim(
             id=c.id, deal_id=deal_id, metric=c.metric, original_text=c.original_text,
             stated_amount_paise=c.stated_amount_paise, stated_months=c.stated_months,
+            currency_code=c.currency_code, original_amount_minor=c.original_amount_minor, fx_rate_to_inr=c.fx_rate_to_inr,
             as_of_date=c.as_of_date, definition=c.definition, status=c.status,
             sources=[{"document_id": payload.id, "locator": c.locator, "quote": c.quote}],
             created_at=datetime.now(timezone.utc).isoformat(),

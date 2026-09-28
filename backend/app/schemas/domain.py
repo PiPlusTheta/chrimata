@@ -12,7 +12,7 @@ class DocumentSchema(BaseModel):
     title: str
     type: str
     version: str
-    document_date: str
+    document_date: Optional[str] = None
     period_start: Optional[str] = None
     period_end: Optional[str] = None
     ingested_at: str
@@ -28,6 +28,9 @@ class ClaimSchema(BaseModel):
     metric: str
     original_text: str
     stated_amount_paise: Optional[int] = None
+    currency_code: Optional[str] = "INR"
+    original_amount_minor: Optional[int] = None
+    fx_rate_to_inr: Optional[str] = None
     stated_months: Optional[str] = None
     as_of_date: str
     definition: Optional[str] = None
@@ -110,6 +113,9 @@ class ClaimInput(BaseModel):
     metric: str
     original_text: str
     stated_amount_paise: Optional[int] = None
+    currency_code: Optional[str] = "INR"
+    original_amount_minor: Optional[int] = None
+    fx_rate_to_inr: Optional[str] = None
     stated_months: Optional[str] = None
     as_of_date: str
     definition: Optional[str] = None

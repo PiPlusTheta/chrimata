@@ -38,6 +38,9 @@ export interface Claim {
   id: string;
   original_text: string;
   stated_amount_paise?: number | null;
+  currency_code?: string | null;
+  original_amount_minor?: number | null;
+  fx_rate_to_inr?: string | null;
   as_of_date: string;
 }
 
@@ -55,7 +58,7 @@ export interface DocumentRecord {
   title: string;
   type: string;
   version: string;
-  document_date: string;
+  document_date: string | null;
   ingested_at: string;
   content: string;
 }

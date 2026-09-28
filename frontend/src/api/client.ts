@@ -26,8 +26,9 @@ export async function fetchClaims(dealId: string): Promise<Claim[]> {
   return res.json();
 }
 
-export async function fetchDocuments(dealId: string): Promise<DocumentRecord[]> {
-  const res = await fetch(`${API_BASE_URL}/deals/${dealId}/documents`, { cache: 'no-store' });
+export async function fetchDocuments(dealId: string, query?: string): Promise<DocumentRecord[]> {
+  const qs = query?.trim() ? `?q=${encodeURIComponent(query.trim())}` : "";
+  const res = await fetch(`${API_BASE_URL}/deals/${dealId}/documents${qs}`, { cache: 'no-store' });
   if (!res.ok) throw new Error("Failed to fetch documents");
   return res.json();
 }
