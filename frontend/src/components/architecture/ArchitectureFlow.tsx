@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ReactFlow, Background, BackgroundVariant, useNodesState, useEdgesState,
-  Position, ConnectionMode, type Edge, type Node, MarkerType
+  Position, ConnectionMode, type Edge, type Node, MarkerType,
+  useReactFlow, ReactFlowProvider
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CustomNode, type NodeData } from './CustomNode';
 import { CustomEdge } from './CustomEdge';
 import { Mobile, Data, Setting4, MessageProgramming, Cpu, Driving, Flash } from 'iconsax-react';
+import { Maximize, Minimize } from 'lucide-react';
 
 const nodeTypes = { custom: CustomNode };
 const edgeTypes = { custom: CustomEdge };
@@ -131,12 +133,34 @@ const PHASE_EDGES: Record<Phase, string[]> = {
 const PHASE_PULSE_HINDSIGHT: Phase[] = ['retain'];
 const PHASE_MS = 2400;
 
-export function ArchitectureFlow() {
+function ArchitectureFlowInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(baseEdges);
   const [phase, setPhase] = useState<Phase>('idle');
   const [isRunning, setIsRunning] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const { fitView } = useReactFlow();
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+      setTimeout(() => {
+        fitView({ padding: 0.2, duration: 800 });
+      }, 100);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, [fitView]);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      wrapperRef.current?.requestFullscreen().catch(err => console.error(err));
+    } else {
+      document.exitFullscreen();
+    }
+  };
 
   const clearTimers = useCallback(() => { timers.current.forEach(clearTimeout); timers.current = []; }, []);
 
@@ -175,7 +199,7 @@ export function ArchitectureFlow() {
   useEffect(() => () => clearTimers(), [clearTimers]);
 
   return (
-    <div className="w-full h-[750px] relative rounded-2xl overflow-hidden border border-white/[0.04] bg-[#030712]">
+    <div ref={wrapperRef} className={`w-full relative rounded-2xl overflow-hidden border border-white/[0.04] bg-[#030712] ${isFullscreen ? 'h-screen' : 'h-[750px]'}`}>
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes arch-flow { from { stroke-dashoffset: 17; } to { stroke-dashoffset: 0; } }
         @keyframes packet-move { 0% { offset-distance: 0%; opacity: 0; } 8% { opacity: 1; } 92% { opacity: 1; } 100% { offset-distance: 100%; opacity: 0; } }
@@ -193,19 +217,28 @@ export function ArchitectureFlow() {
 
         {/* Top-Right Controls */}
         <div className="flex flex-col items-end gap-3 pointer-events-auto">
-          <motion.button
-            onClick={runSimulation} whileTap={{ scale: 0.96 }} whileHover={{ scale: 1.02 }}
-            className={[
-              'flex items-center gap-2 px-5 py-2.5 rounded-xl',
-              'font-sans text-[12px] font-semibold tracking-tight border cursor-pointer transition-all duration-300',
-              isRunning
-                ? 'bg-gradient-to-r from-amber-700 to-amber-900 border-amber-600/40 text-amber-100 shadow-[0_0_20px_rgba(217,119,6,0.25)]'
-                : 'bg-slate-900/80 border-white/[0.06] text-slate-400 hover:bg-slate-800/80 hover:border-white/[0.1] hover:text-slate-300',
-            ].join(' ')}
-          >
-            <Flash size={14} variant={isRunning ? "Bold" : "Linear"} color="currentColor" />
-            {isRunning ? 'Stop Simulation' : 'Simulate Analyst Workflow'}
-          </motion.button>
+          <div className="flex flex-row items-center gap-3">
+            <motion.button
+              onClick={runSimulation} whileTap={{ scale: 0.96 }} whileHover={{ scale: 1.02 }}
+              className={[
+                'flex items-center gap-2 px-5 py-2.5 rounded-xl',
+                'font-sans text-[12px] font-semibold tracking-tight border cursor-pointer transition-all duration-300',
+                isRunning
+                  ? 'bg-gradient-to-r from-amber-700 to-amber-900 border-amber-600/40 text-amber-100 shadow-[0_0_20px_rgba(217,119,6,0.25)]'
+                  : 'bg-slate-900/80 border-white/[0.06] text-slate-400 hover:bg-slate-800/80 hover:border-white/[0.1] hover:text-slate-300',
+              ].join(' ')}
+            >
+              <Flash size={14} variant={isRunning ? "Bold" : "Linear"} color="currentColor" />
+              {isRunning ? 'Stop Simulation' : 'Simulate Analyst Workflow'}
+            </motion.button>
+            <motion.button
+              onClick={toggleFullscreen} whileTap={{ scale: 0.96 }} whileHover={{ scale: 1.02 }}
+              className="flex items-center justify-center p-2.5 rounded-xl bg-slate-900/80 border border-white/[0.06] text-slate-400 hover:bg-slate-800/80 hover:border-white/[0.1] hover:text-slate-300 transition-all duration-300"
+              aria-label="Toggle Fullscreen"
+            >
+              {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
+            </motion.button>
+          </div>
 
           {/* Phase indicator */}
           <AnimatePresence mode="wait">
@@ -244,5 +277,13 @@ export function ArchitectureFlow() {
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#0a1120" />
       </ReactFlow>
     </div>
+  );
+}
+
+export function ArchitectureFlow() {
+  return (
+    <ReactFlowProvider>
+      <ArchitectureFlowInner />
+    </ReactFlowProvider>
   );
 }
