@@ -20,15 +20,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const params = useParams<{ deal_id?: string }>();
-  const dealId = params?.deal_id || "northstar";
-  const nav = getDashboardNav(dealId);
-  const { menuOpen, setMenuOpen, isCollapsed, setIsCollapsed, summary, backendOnline, init, deals, loadDeals } = useDashboardStore();
+  // Undefined (not defaulted to "northstar") on routes like the /dashboard
+  // portfolio picker, which aren't scoped to any company yet — defaulting here
+  // used to silently show Northstar's data as if it were the "active mandate"
+  // even when the user hadn't selected anything.
+  const dealId = params?.deal_id;
+  const nav = dealId ? getDashboardNav(dealId) : [];
+  const { menuOpen, setMenuOpen, isCollapsed, setIsCollapsed, summary, backendOnline, init, clearActiveDeal, deals, loadDeals } = useDashboardStore();
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    void init(dealId);
-  }, [dealId, init]);
+    if (dealId) void init(dealId);
+    else clearActiveDeal();
+  }, [dealId, init, clearActiveDeal]);
 
   useEffect(() => {
     void loadDeals();
@@ -79,10 +84,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <span className={`flex items-center gap-1 font-semibold ${backendOnline ? "text-tertiary" : "text-terra-light"}`}><span className={`h-1 w-1 rounded-full ${backendOnline ? "bg-tertiary" : "bg-terra-light"}`} /> {backendOnline ? "Online" : "Unavailable"}</span>
                 </div>
                 <div className="mt-1 flex items-center justify-between gap-2">
-                  <span className="truncate font-mono text-[11px] text-on-surface">{summary?.company_name ?? "No deal loaded"}</span>
+                  <span className="truncate font-mono text-[11px] text-on-surface">{summary?.company_name ?? "No mandate selected"}</span>
                   <ArrowDown2 size={12} color="currentColor" className={`shrink-0 text-outline transition-transform ${switcherOpen ? "rotate-180" : ""}`} />
                 </div>
-                <div className="mt-0.5 font-mono text-[10px] text-on-surface-variant/80">{summary ? `${summary.document_count} documents · ${summary.open_issue_count} open issues` : "Connect to view deal status"}</div>
+                <div className="mt-0.5 font-mono text-[10px] text-on-surface-variant/80">{summary ? `${summary.document_count} documents · ${summary.open_issue_count} open issues` : "Choose a company below to open its terminal"}</div>
               </button>
               {switcherOpen && (
                 <div role="listbox" className="absolute left-0 right-0 top-full z-50 mt-1 max-h-80 overflow-y-auto rounded-lg border border-hairline bg-aegean-surface shadow-lg">
@@ -121,7 +126,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <span className="flex items-center justify-center w-[18px] h-[18px]">{ICON_MAP[item.icon] || <StatusUp size={18} variant="Linear" color="currentColor" />}</span>
                   <span className="nav-label">{item.label}</span>
                 </span>
-                {item.href === ROUTES.queue(dealId) && summary && <span className="nav-badge font-mono text-[10px] text-outline">{summary.open_issue_count}</span>}
+                {dealId && item.href === ROUTES.queue(dealId) && summary && <span className="nav-badge font-mono text-[10px] text-outline">{summary.open_issue_count}</span>}
               </Link>;
             })}
           </nav>
