@@ -1,6 +1,7 @@
 /** Canonical product paths. Legacy paths are redirected in next.config.ts. */
 export const ROUTES = {
   home: "/",
+  architecture: "/dashboard/architecture",
   queue: (dealId: string) => `/dashboard/${dealId}/queue`,
   diligence: (dealId: string) => `/dashboard/${dealId}/diligence`,
   evidence: (dealId: string) => `/dashboard/${dealId}/evidence`,

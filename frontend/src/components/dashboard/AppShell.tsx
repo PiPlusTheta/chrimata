@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Home, Category, Hierarchy, ArchiveBook, MessageProgramming, HambergerMenu, StatusUp, Bank, ArrowRight2, ArrowLeft2, CloseCircle, ArrowDown2 } from "iconsax-react";
+import { Home, Category, Hierarchy, ArchiveBook, MessageProgramming, HambergerMenu, StatusUp, Bank, ArrowRight2, ArrowLeft2, CloseCircle, ArrowDown2, Activity } from "iconsax-react";
 
 import { getDashboardNav, ROUTES } from "../../routes";
 import { useDashboardStore } from "./store";
@@ -117,6 +117,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <span className="flex items-center gap-2.5">
                 <span className="flex items-center justify-center w-[18px] h-[18px]"><Home size={18} variant="Linear" color="currentColor" /></span>
                 <span className="nav-label">All Mandates</span>
+              </span>
+            </Link>
+            <Link href={ROUTES.architecture} onClick={() => setMenuOpen(false)} aria-current={pathname === ROUTES.architecture ? "page" : undefined} className={`dashboard-nav-link ${pathname === ROUTES.architecture ? "is-active" : ""}`}>
+              <span className="flex items-center gap-2.5">
+                <span className="flex items-center justify-center w-[18px] h-[18px]"><Activity size={18} variant="Linear" color="currentColor" /></span>
+                <span className="nav-label">Architecture Map</span>
               </span>
             </Link>
             {nav.map((item) => {
