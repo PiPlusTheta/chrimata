@@ -423,7 +423,7 @@ export default function DiligenceWorkspace() {
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-center mb-0.5">
                           <span className="text-xs font-medium text-text-primary truncate">{d.title}</span>
-                          <span className="text-[10px] text-outline font-mono">{d.document_date}</span>
+                          <span className="text-[10px] text-outline font-mono group-hover:opacity-0 transition-opacity duration-200">{d.document_date}</span>
                         </div>
                         <div className="text-[10px] text-on-surface-variant line-clamp-2 [&_.ask-markdown]:text-[10px] [&_p]:my-0 [&_h1]:text-[10px] [&_h2]:text-[10px] [&_ul]:my-0 [&_li]:my-0">
                           <MarkdownMessage text={d.content} />
@@ -431,7 +431,7 @@ export default function DiligenceWorkspace() {
                       </div>
                     </button>
                     <button onClick={() => handleAnalyzeNewEvidence(d.id)} disabled={featureLoading[`analyze_${d.id}`]}
-                      className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity bg-bronze/10 text-bronze border border-bronze/20 px-2 py-1 rounded text-[9px] font-mono uppercase">
+                      className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-[#0d1520]/90 backdrop-blur-sm text-bronze border border-bronze/20 px-2 py-1 rounded text-[9px] font-mono uppercase z-10 shadow-sm">
                       {featureLoading[`analyze_${d.id}`] ? "Analyzing..." : "Analyze Impact"}
                     </button>
                   </div>

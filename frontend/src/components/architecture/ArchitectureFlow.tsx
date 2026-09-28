@@ -96,13 +96,13 @@ const baseEdges: Edge[] = [
   // Hindsight (amber)
   { id: 'e-pipe-hs', source: 'pipelines', target: 'hindsight', type: 'custom',
     sourceHandle: 'right', targetHandle: 'top',
-    data: { label: 'arecall()', sublabel: 'Fetch Past Outcomes', edgeVariant: 'hindsight' } },
+    data: { label: 'recall()', sublabel: 'Fetch Past Outcomes', edgeVariant: 'hindsight' } },
   { id: 'e-agent-hs', source: 'agent', target: 'hindsight', type: 'custom',
     sourceHandle: 'bottom', targetHandle: 'right',
-    data: { label: 'areflect()', sublabel: 'Synthesize Markdown Context', edgeVariant: 'hindsight' } },
+    data: { label: 'reflect()', sublabel: 'Synthesize Markdown Context', edgeVariant: 'hindsight' } },
   { id: 'e-gw-hs', source: 'gateway', target: 'hindsight', type: 'custom',
     sourceHandle: 'right', targetHandle: 'top',
-    data: { label: 'aretain()', sublabel: 'Store Decision Receipts', edgeVariant: 'hindsight' } },
+    data: { label: 'retain()', sublabel: 'Store Decision Receipts', edgeVariant: 'hindsight' } },
 ];
 
 /* ────────────────────────────────────────────────
@@ -115,7 +115,7 @@ const PHASE_LABELS: Record<Phase, string> = {
   accept: 'Phase 1 — Analyst accepts discrepancy explanation via UI',
   route: 'Phase 2 — Gateway routes decision to workloads',
   persist: 'Phase 3 — PostgreSQL marks issue as resolved (SQL UPDATE)',
-  retain: 'Phase 4 — Hindsight stores semantic explanation via aretain()',
+  retain: 'Phase 4 — Hindsight stores semantic explanation via retain()',
   done: 'Workflow complete — context persisted for future institutional recall',
 };
 
@@ -183,47 +183,51 @@ export function ArchitectureFlow() {
       `}} />
 
       {/* Top bar */}
-      <div className="absolute top-0 inset-x-0 z-20 flex items-center justify-between px-7 py-5 bg-gradient-to-b from-[#030712] via-[#030712]/70 to-transparent pointer-events-none">
+      <div className="absolute top-0 inset-x-0 z-20 flex items-start justify-between px-7 py-5 bg-gradient-to-b from-[#030712] via-[#030712]/70 to-transparent pointer-events-none">
         <div className="pointer-events-auto">
           <h2 className="font-sans text-lg font-semibold tracking-tight text-slate-100">System Architecture</h2>
           <p className="font-sans text-[11px] text-slate-500 mt-0.5 max-w-lg tracking-tight">
             Institutional data topology — PostgreSQL tracks ticket state, Hindsight retains semantic context for long-term agent memory.
           </p>
         </div>
-        <motion.button
-          onClick={runSimulation} whileTap={{ scale: 0.96 }} whileHover={{ scale: 1.02 }}
-          className={[
-            'pointer-events-auto flex items-center gap-2 px-5 py-2.5 rounded-xl',
-            'font-sans text-[12px] font-semibold tracking-tight border cursor-pointer transition-all duration-300',
-            isRunning
-              ? 'bg-gradient-to-r from-amber-700 to-amber-900 border-amber-600/40 text-amber-100 shadow-[0_0_20px_rgba(217,119,6,0.25)]'
-              : 'bg-slate-900/80 border-white/[0.06] text-slate-400 hover:bg-slate-800/80 hover:border-white/[0.1] hover:text-slate-300',
-          ].join(' ')}
-        >
-          <Flash size={14} variant={isRunning ? "Bold" : "Linear"} color="currentColor" />
-          {isRunning ? 'Stop Simulation' : 'Simulate Analyst Workflow'}
-        </motion.button>
-      </div>
 
-      {/* Phase indicator */}
-      <AnimatePresence mode="wait">
-        {isRunning && phase !== 'idle' && (
-          <motion.div
-            key={phase} initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
-            transition={{ duration: 0.2 }}
-            className="absolute top-[66px] right-7 z-20 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-950/80 border border-white/[0.04] backdrop-blur-md"
+        {/* Top-Right Controls */}
+        <div className="flex flex-col items-end gap-3 pointer-events-auto">
+          <motion.button
+            onClick={runSimulation} whileTap={{ scale: 0.96 }} whileHover={{ scale: 1.02 }}
+            className={[
+              'flex items-center gap-2 px-5 py-2.5 rounded-xl',
+              'font-sans text-[12px] font-semibold tracking-tight border cursor-pointer transition-all duration-300',
+              isRunning
+                ? 'bg-gradient-to-r from-amber-700 to-amber-900 border-amber-600/40 text-amber-100 shadow-[0_0_20px_rgba(217,119,6,0.25)]'
+                : 'bg-slate-900/80 border-white/[0.06] text-slate-400 hover:bg-slate-800/80 hover:border-white/[0.1] hover:text-slate-300',
+            ].join(' ')}
           >
-            <motion.div
-              className={`w-1.5 h-1.5 rounded-full ${phase === 'done' ? 'bg-emerald-400' : 'bg-amber-400'}`}
-              animate={{ opacity: [1, 0.3, 1] }}
-              transition={{ duration: 0.7, repeat: Infinity }}
-            />
-            <span className="font-sans text-[10px] font-medium text-slate-400 tracking-tight">
-              {PHASE_LABELS[phase]}
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <Flash size={14} variant={isRunning ? "Bold" : "Linear"} color="currentColor" />
+            {isRunning ? 'Stop Simulation' : 'Simulate Analyst Workflow'}
+          </motion.button>
+
+          {/* Phase indicator */}
+          <AnimatePresence mode="wait">
+            {isRunning && phase !== 'idle' && (
+              <motion.div
+                key={phase} initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
+                transition={{ duration: 0.2 }}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-950/80 border border-white/[0.04] backdrop-blur-md"
+              >
+                <motion.div
+                  className={`w-1.5 h-1.5 rounded-full ${phase === 'done' ? 'bg-emerald-400' : 'bg-amber-400'}`}
+                  animate={{ opacity: [1, 0.3, 1] }}
+                  transition={{ duration: 0.7, repeat: Infinity }}
+                />
+                <span className="font-sans text-[10px] font-medium text-slate-400 tracking-tight">
+                  {PHASE_LABELS[phase]}
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
 
       <ReactFlow
         nodes={nodes} edges={edges}
