@@ -1,32 +1,47 @@
-# LinkedIn post draft
+# Published article links
 
-Agents don't just forget facts. They forget why a team made a call.
+- **Portfolio:** https://piplustheta.in/blog/hindsight-memory-replay
+- **DEV Community:** https://dev.to/piplustheta/the-agent-reopened-a-resolved-issue-hindsight-remembered-why-3id2
+- **Hashnode:** https://piplustheta.hashnode.dev/the-agent-reopened-a-resolved-issue-hindsight-remembered-why
 
-In Chrimata, an analyst’s decision becomes a Hindsight memory with its explanation and supporting context.
+# LinkedIn post
 
-When the same diligence issue returns, the agent compares that prior reasoning with today’s evidence:
+An agent can remember that a diligence issue was resolved and still forget why.
 
-Before: it can reopen the issue or ask for the same evidence again.
-After: it recalls the earlier resolution and checks whether current sources still support it.
+We built Chrimata’s replay to run the same financial review twice: once without Hindsight, then with it. In our Northstar example, the first pass reopened a related issue. With Hindsight, the agent recalled eight prior memories and kept the issue resolved.
 
-PostgreSQL tracks live ticket state. Hindsight carries the reasoning forward.
+The point isn’t to make old decisions permanent. Current evidence still has to support them.
 
-We built Chrimata as an evidence-linked due-diligence workspace: https://github.com/PiPlusTheta/chrimata
+PostgreSQL tracks live issue state. Hindsight brings prior reasoning into the next review.
 
-#AIAgents #Hindsight #AgentMemory
+Project: https://github.com/PiPlusTheta/chrimata/
 
-**First comment:** Read the technical write-up: [ARTICLE_URL]
+#AIAgents #Hindsight #AgentMemory #FinancialDueDiligence
 
-**Second comment:** Hindsight agent memory: https://github.com/vectorize-io/hindsight
+**First comment:** Read the article on DEV Community: https://dev.to/piplustheta/the-agent-reopened-a-resolved-issue-hindsight-remembered-why-3id2
 
-# Reddit link post draft
+Also on Hashnode: https://piplustheta.hashnode.dev/the-agent-reopened-a-resolved-issue-hindsight-remembered-why
 
-**Suggested subreddit:** r/aiagents
+And on the portfolio: https://piplustheta.in/blog/hindsight-memory-replay
 
-**Title:** Hindsight remembers why a diligence issue was resolved
+**Second comment:** Try Hindsight here: https://github.com/vectorize-io/hindsight
 
-**Link:** [ARTICLE_URL]
+# Reddit link post
 
-# Dev.to publishing draft
+**Post type:** Link
 
-Use `devto-article.md`; keep `published: false` until the images are uploaded and the public article URL is ready.
+**Recommended subreddit:** r/aiagents
+
+**Other allowed options:** r/llmdevs, r/sideproject, r/aimemory
+
+**Title:** The Agent Reopened a Resolved Issue. Hindsight Remembered Why
+
+**Link field:** https://dev.to/piplustheta/the-agent-reopened-a-resolved-issue-hindsight-remembered-why-3id2
+
+**Optional post text, if the subreddit allows it:** New MRR evidence made our diligence agent reopen an issue that an analyst had already resolved. With Hindsight enabled, it recalled eight prior memories and kept the issue resolved—while still checking the new evidence. The article walks through the replay and the Python code that compares both runs.
+
+**Other published versions, in order:**
+
+1. DEV Community: https://dev.to/piplustheta/the-agent-reopened-a-resolved-issue-hindsight-remembered-why-3id2
+2. Hashnode: https://piplustheta.hashnode.dev/the-agent-reopened-a-resolved-issue-hindsight-remembered-why
+3. Portfolio: https://piplustheta.in/blog/hindsight-memory-replay
