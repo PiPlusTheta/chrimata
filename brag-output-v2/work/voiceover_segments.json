@@ -82,5 +82,26 @@
     "end": 120.0,
     "emotion": "[engaged, confident, clear; build emphasis through the flow]",
     "text": "Here’s the flow. The interface sends an analyst’s decision through the API gateway—over REST, or as a live stream. The gateway routes review pipelines for change reviews and evidence requests, or sends questions to the Ask agent. PostgreSQL tracks each ticket and status. Hindsight retains the decision and reasoning, then recalls past outcomes when similar issues return."
+  },
+  {
+    "id": "vo_intro",
+    "start": 0.5,
+    "end": 31.06,
+    "emotion": "[warm, energetic, confident; conversational introduction]",
+    "text": "We are Niloy Nath and Nitesh Gupta—we’re team n cubed t. Together, we built Chrimata, a financial due diligence workspace that ties each claim to its source documents, captures why an analyst made a decision, and brings that reasoning into the next review. The question that drove us was simple: when new evidence changes a number, can an agent explain what changed without forgetting why the team made its earlier call? Let’s show you how it works."
+  },
+  {
+    "id": "vo_problem",
+    "start": 31.97,
+    "end": 62.6,
+    "emotion": "[engaged, clear; emphasize ‘without memory’ and ‘same evidence’]",
+    "text": "Here’s the failure mode. New evidence changes MRR, but it doesn’t automatically invalidate the analyst’s earlier explanation. Without memory, the agent sees the latest numbers and open questions, but not why a related issue was resolved. It can reopen the same work or ask for the same evidence again. Chrimata runs that review twice—first without memory, then with Hindsight—so we can compare the results."
+  },
+  {
+    "id": "vo_takeaway",
+    "start": 184.95,
+    "end": 214.5,
+    "emotion": "[reflective, warm, assured; land the final contrast]",
+    "text": "What surprised me is that the hardest part isn’t finding the new number; it’s remembering why the team treated it that way. Hindsight brings back the earlier decision and explanation, while PostgreSQL tracks current ticket state. The agent still checks today’s evidence, and a real contradiction can change the outcome. Memory doesn’t make a decision permanent; it gives the next review enough context to question it intelligently."
   }
 ]

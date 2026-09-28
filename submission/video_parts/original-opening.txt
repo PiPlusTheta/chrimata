@@ -1,0 +1,8 @@
+file '/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s01_open_base.mp4'
+file '/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s02_landing_ramped.mp4'
+file '/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s03_enter_base.mp4'
+file '/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s04_dashboard_base.mp4'
+file '/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s05_queue_base.mp4'
+file '/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s06_diligence_base.mp4'
+file '/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s07_whatchanged_ramped.mp4'
+file '/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s08_hindsight_ramped.mp4'

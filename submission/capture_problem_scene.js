@@ -1,0 +1,34 @@
+const puppeteer=require('../brag-output-v2/work/node_modules/puppeteer');
+const fs=require('fs'),path=require('path');
+const OUT=path.join(__dirname,'work','memory_problem');fs.mkdirSync(OUT,{recursive:true});
+for(const f of fs.readdirSync(OUT))fs.unlinkSync(path.join(OUT,f));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+const cursor=`(()=>{const s=document.createElement('style');s.textContent='#__cur{position:fixed;z-index:2147483647;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#E5C79E,#C5A880 55%,#8A7456);box-shadow:0 0 14px 3px rgba(197,168,128,.55),0 2px 6px rgba(0,0,0,.6);border:1.5px solid rgba(7,12,20,.6);pointer-events:none;transform:translate(-50%,-50%);left:-100px;top:-100px}#__cur.down{transform:translate(-50%,-50%) scale(.62)}';document.head.appendChild(s);let e=document.createElement('div');e.id='__cur';document.body.appendChild(e);window.__cur=(x,y,d)=>{e.style.left=x+'px';e.style.top=y+'px';e.classList.toggle('down',!!d)}})()`;
+(async()=>{
+ const browser=await puppeteer.launch({headless:'new',args:['--no-sandbox','--disable-setuid-sandbox','--force-device-scale-factor=1']});
+ const page=await browser.newPage();await page.setViewport({width:1920,height:1080,deviceScaleFactor:1});
+ await page.setRequestInterception(true);
+ page.on('request',req=>{const u=req.url();if(u.startsWith('http://localhost:8000/api/'))req.continue({url:u.replace('http://localhost:8000','http://127.0.0.1:8001')});else req.continue()});
+ page.on('console',msg=>{if(msg.type()==='error')console.log('browser_error',msg.text().slice(0,180))});
+ await page.goto('http://localhost:3000/dashboard/northstar/diligence',{waitUntil:'networkidle0'});
+ await page.waitForFunction(()=>document.body.innerText.includes('Test Memory Replay'),{timeout:20000});
+ await page.waitForFunction(()=>document.body.innerText.includes('RETAINED'),{timeout:15000});
+ await page.evaluate(cursor);
+ const buttons=await page.$$('button');let replayButton=null;
+ for(const button of buttons){if((await button.evaluate(e=>e.innerText)).includes('Test Memory Replay')){replayButton=button;break}}
+ if(!replayButton)throw new Error('Diligence replay control is missing.');
+ await replayButton.evaluate(e=>e.scrollIntoView({block:'center'}));await sleep(1000);
+ const loc=await replayButton.boundingBox();if(!loc)throw new Error('Replay control has no visible position.');
+ const fps=12.5,start=Date.now();let i=0,recording=true;
+ const rec=(async()=>{while(recording){const target=start+i*1000/fps;await page.screenshot({path:path.join(OUT,`f${String(i++).padStart(5,'0')}.png`)});await sleep(Math.max(0,target+1000/fps-Date.now()))}})();
+ await sleep(3000);
+ const x=loc.x+loc.width/2,y=loc.y+loc.height/2;
+ await page.mouse.move(x,y,{steps:12});await page.evaluate(([a,b])=>window.__cur?.(a,b,false),[x,y]);await sleep(400);
+ await page.evaluate(([a,b])=>window.__cur?.(a,b,true),[x,y]);await replayButton.click({delay:100});await sleep(100);await page.evaluate(([a,b])=>window.__cur?.(a,b,false),[x,y]);
+ await page.waitForFunction(()=>document.body.innerText.includes('Memory Effect (Server-side diff)'),{timeout:180000});
+ const count=await page.evaluate(()=>{const t=document.body.innerText;return {without:t.includes('Without memory:'),with:t.includes('With memory:'),recalled:(t.match(/Retrieved \d+ memories/)||[])[0]||'not shown'}});
+ const min=Date.now()-start, totalMs=31500; if(min<totalMs)await sleep(totalMs-min);
+ recording=false;await rec;await page.screenshot({path:path.join(__dirname,'assets','memory-replay-result.png')});
+ await browser.close();console.log(`Captured ${i} frames (${(i/fps).toFixed(2)}s); replay result visible=${JSON.stringify(count)}.`);
+})().catch(e=>{console.error(e.message);process.exit(1)});

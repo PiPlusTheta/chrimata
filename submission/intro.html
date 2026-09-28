@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:#07101c;color:#eef1f4;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.backdrop{position:absolute;inset:-36px;background:url("assets/diligence-evidence.png") center/cover no-repeat;opacity:.19;filter:blur(2px);animation:drift 34s ease-in-out infinite alternate}
+.wash{position:absolute;inset:0;background:linear-gradient(90deg,rgba(5,10,17,.98) 0%,rgba(5,10,17,.94) 44%,rgba(5,10,17,.72) 100%)}
+.goldline{position:absolute;left:0;top:0;width:4px;height:100%;background:linear-gradient(180deg,#c5a880 0%,rgba(197,168,128,.08) 84%)}
+.wrap{position:absolute;inset:72px 96px;display:grid;grid-template-columns:1fr 780px;gap:86px;align-items:center}
+.brand{position:absolute;left:96px;top:56px;display:flex;align-items:center;gap:17px;color:#d7c09b;font:500 19px Georgia,serif;letter-spacing:.08em}
+.omega{font-size:27px;color:#d8b66e}.institution{font:500 10px ui-monospace,monospace;color:#7d8998;letter-spacing:.16em;border-left:1px solid #354050;padding-left:18px}
+.presenter{color:#c5a880;font:600 13px ui-monospace,monospace;letter-spacing:.17em;text-transform:uppercase;margin-bottom:24px;opacity:0;animation:appear .8s ease-out .6s forwards}
+h1{font:500 68px/1.07 Georgia,'Times New Roman',serif;letter-spacing:-1.2px;margin:0;max-width:920px;color:#f2f0ea;opacity:0;animation:appear 1s ease-out 1s forwards}
+h1 em{font-style:normal;color:#d7b786}
+.dek{margin-top:27px;max-width:740px;color:#aab3bf;font:400 22px/1.5 Inter, sans-serif;opacity:0;animation:appear 1s ease-out 1.8s forwards}
+.names{display:flex;align-items:center;gap:13px;margin-top:38px;opacity:0;animation:appear .8s ease-out 2.4s forwards}
+.name{padding:12px 17px;border:1px solid rgba(197,168,128,.3);background:rgba(13,20,30,.76);border-radius:8px;color:#d7dce2;font:500 15px ui-monospace,monospace}
+.team{margin-left:7px;color:#c5a880;font:600 14px ui-monospace,monospace;letter-spacing:.12em}
+.frame{position:relative;padding:10px;border:1px solid rgba(197,168,128,.38);border-radius:17px;background:rgba(9,15,24,.85);box-shadow:0 26px 80px rgba(0,0,0,.48);opacity:0;transform:translateY(14px);animation:appearframe 1s ease-out 1.3s forwards}
+.frame img{display:block;width:100%;height:500px;object-fit:cover;object-position:center;border-radius:9px;filter:saturate(.82) brightness(.92)}
+.frame:after{content:"EVIDENCE · DECISIONS · MEMORY";position:absolute;left:30px;bottom:25px;padding:10px 13px;background:rgba(6,12,20,.88);border:1px solid rgba(197,168,128,.32);border-radius:6px;color:#d4bd96;font:600 11px ui-monospace,monospace;letter-spacing:.16em}
+.caption{position:absolute;left:96px;bottom:54px;color:#748294;font:500 11px ui-monospace,monospace;letter-spacing:.15em;text-transform:uppercase}
+.pulse{position:absolute;right:875px;top:235px;width:8px;height:8px;border-radius:50%;background:#d5b980;box-shadow:0 0 22px 5px rgba(197,168,128,.26);animation:glow 2.8s ease-in-out infinite}
+@keyframes appear{to{opacity:1}}@keyframes appearframe{to{opacity:1;transform:translateY(0)}}@keyframes glow{50%{opacity:.45;box-shadow:0 0 35px 9px rgba(197,168,128,.4)}}@keyframes drift{to{transform:scale(1.04) translate(-10px,8px)}}
+</style></head>
+<body>
+<div class="backdrop"></div><div class="wash"></div><div class="goldline"></div>
+<div class="brand"><span class="omega">Ω</span><span>CHRIMATA</span><span class="institution">INSTITUTIONAL TERMINAL</span></div>
+<main class="wrap">
+  <section>
+    <div class="presenter">NILOY NATH × NITESH GUPTA</div>
+    <h1>Due diligence,<br><em>with a memory for the why.</em></h1>
+    <p class="dek">Claims linked to source evidence. Decisions carried forward into the next review.</p>
+    <div class="names"><span class="name">Niloy Nath</span><span class="name">Nitesh Gupta</span><span class="team">TEAM n³t</span></div>
+  </section>
+  <div class="frame"><img src="assets/ask-with-context.png" alt="Chrimata Ask interface"></div>
+</main>
+<div class="pulse"></div><div class="caption">Financial diligence · rebuilt for evidence and institutional memory</div>
+</body></html>

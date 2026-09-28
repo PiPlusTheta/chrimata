@@ -1,4 +1,5 @@
 import os
+import json
 from typing import List, Dict, Any, Optional
 
 try:
@@ -72,7 +73,23 @@ class HindsightAdapter:
         if not self.is_available():
             return False
         try:
-            await self.client.aretain(bank_id=bank_id, document_id=document_id, content=text, metadata=meta)
+            # Hindsight metadata values are strings. Investigation metadata includes
+            # structured values (for example, source IDs and metric lists), so encode
+            # those values as stable JSON instead of letting every retain fail model
+            # validation before it reaches the memory store.
+            metadata = {}
+            for key, value in (meta or {}).items():
+                if value is None:
+                    continue
+                if isinstance(value, str):
+                    metadata[key] = value
+                elif isinstance(value, (bool, int, float)):
+                    metadata[key] = str(value).lower() if isinstance(value, bool) else str(value)
+                else:
+                    metadata[key] = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
+            await self.client.aretain(
+                bank_id=bank_id, document_id=document_id, content=text, metadata=metadata,
+            )
             return True
         except Exception as e:
             print(f"Hindsight retain failed: {e}")

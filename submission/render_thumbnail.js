@@ -1,0 +1,3 @@
+const puppeteer=require('../brag-output-v2/work/node_modules/puppeteer');
+const path=require('path');
+(async()=>{const browser=await puppeteer.launch({headless:'new',args:['--no-sandbox','--disable-setuid-sandbox']});const page=await browser.newPage();await page.setViewport({width:1280,height:720,deviceScaleFactor:1});await page.goto(`file://${path.join(__dirname,'thumbnail.html')}`,{waitUntil:'networkidle0'});await page.evaluate(()=>Promise.all([...document.images].map(i=>i.decode().catch(()=>{}))));await page.screenshot({path:path.join(__dirname,'assets/youtube-thumbnail.png')});await browser.close();})().catch(e=>{console.error(e.message);process.exit(1)});

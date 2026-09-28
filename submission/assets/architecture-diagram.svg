@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Chrimata system architecture and Hindsight data flow</title>
+  <desc id="desc">The analyst interface talks to a FastAPI gateway, which routes requests to review pipelines and the Ask agent. PostgreSQL stores ticket and review state. Hindsight retains decision receipts and returns relevant past outcomes and context.</desc>
+  <defs>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6797e8"/></marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#56bb91"/></marker>
+    <marker id="arrow-amber" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#d79548"/></marker>
+    <filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>
+    <style>
+      .title{font:600 36px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#eef2f8;letter-spacing:-.6px}
+      .sub{font:400 16px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#8492a8}
+      .label{font:600 21px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#edf2f9}
+      .meta{font:400 15px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#9aa8ba}
+      .tier{font:600 11px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#8090a4;letter-spacing:1.4px}
+      .edge{font:600 13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+      .small{font:400 13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#718096}
+    </style>
+  </defs>
+  <rect width="1600" height="900" fill="#070d17"/>
+  <circle cx="800" cy="450" r="330" fill="#17334d" opacity=".14" filter="url(#soft)"/>
+  <text x="72" y="72" class="title">Chrimata · System architecture</text>
+  <text x="72" y="104" class="sub">Live evidence enters through one gateway; operational state and institutional memory have separate jobs.</text>
+
+  <!-- Standard request paths -->
+  <path d="M800 208 L800 266" fill="none" stroke="#6797e8" stroke-width="3" marker-end="url(#arrow-blue)"/>
+  <rect x="832" y="222" width="133" height="29" rx="7" fill="#0d1726" stroke="#1c2b40"/>
+  <text x="898" y="241" text-anchor="middle" class="edge" fill="#9dbcf1">HTTPS · REST + SSE</text>
+
+  <path d="M650 382 L650 425 L395 425 L395 488" fill="none" stroke="#6797e8" stroke-width="3" marker-end="url(#arrow-blue)"/>
+  <rect x="432" y="407" width="112" height="28" rx="7" fill="#0d1726" stroke="#1c2b40"/>
+  <text x="488" y="426" text-anchor="middle" class="edge" fill="#9dbcf1">Trigger</text>
+
+  <path d="M950 382 L950 425 L1205 425 L1205 488" fill="none" stroke="#6797e8" stroke-width="3" marker-end="url(#arrow-blue)"/>
+  <rect x="1059" y="407" width="112" height="28" rx="7" fill="#0d1726" stroke="#1c2b40"/>
+  <text x="1115" y="426" text-anchor="middle" class="edge" fill="#9dbcf1">Session</text>
+
+  <!-- Relational state paths -->
+  <path d="M395 618 L395 727" fill="none" stroke="#56bb91" stroke-width="3" marker-end="url(#arrow-green)"/>
+  <rect x="421" y="652" width="119" height="28" rx="7" fill="#0b1a18" stroke="#193b32"/>
+  <text x="480" y="671" text-anchor="middle" class="edge" fill="#75d4a9">SQL update</text>
+
+  <path d="M600 328 L118 328 L118 783 L155 783" fill="none" stroke="#56bb91" stroke-width="2.5" marker-end="url(#arrow-green)"/>
+  <rect x="77" y="664" width="119" height="28" rx="7" fill="#0b1a18" stroke="#193b32"/>
+  <text x="136" y="683" text-anchor="middle" class="edge" fill="#75d4a9">SQL insert</text>
+
+  <!-- Memory paths -->
+  <path d="M645 553 L955 553" fill="none" stroke="#d79548" stroke-width="3" marker-end="url(#arrow-amber)"/>
+  <rect x="686" y="534" width="227" height="37" rx="8" fill="#1c160f" stroke="#49331d"/>
+  <text x="799" y="550" text-anchor="middle" class="edge" fill="#f1bd78">recall() · past outcomes</text>
+  <text x="799" y="565" text-anchor="middle" class="small">review pipeline retrieves context</text>
+
+  <path d="M1205 618 L1205 727" fill="none" stroke="#d79548" stroke-width="3" marker-end="url(#arrow-amber)"/>
+  <rect x="1228" y="652" width="137" height="28" rx="7" fill="#1c160f" stroke="#49331d"/>
+  <text x="1296" y="671" text-anchor="middle" class="edge" fill="#f1bd78">reflect() · context</text>
+
+  <path d="M1000 328 L1515 328 L1515 783 L1445 783" fill="none" stroke="#d79548" stroke-width="2.5" marker-end="url(#arrow-amber)"/>
+  <rect x="1320" y="681" width="247" height="37" rx="8" fill="#1c160f" stroke="#49331d"/>
+  <text x="1444" y="697" text-anchor="middle" class="edge" fill="#f1bd78">retain() · decision receipt</text>
+  <text x="1444" y="712" text-anchor="middle" class="small">stores explanation + metadata</text>
+
+  <!-- Nodes -->
+  <g>
+    <rect x="600" y="108" width="400" height="100" rx="16" fill="#111b2a" stroke="#344966" stroke-width="1.5"/>
+    <text x="626" y="141" class="tier">INTERFACE</text>
+    <text x="626" y="172" class="label">Client / UI</text>
+    <text x="626" y="193" class="meta">Next.js 15 · React 19</text>
+  </g>
+  <g>
+    <rect x="600" y="266" width="400" height="116" rx="16" fill="#111b2a" stroke="#344966" stroke-width="1.5"/>
+    <text x="626" y="301" class="tier">ROUTER</text>
+    <text x="626" y="334" class="label">API Gateway</text>
+    <text x="626" y="360" class="meta">FastAPI · Uvicorn</text>
+  </g>
+  <g>
+    <rect x="145" y="488" width="500" height="130" rx="16" fill="#111b2a" stroke="#344966" stroke-width="1.5"/>
+    <text x="175" y="525" class="tier">WORKLOAD · AUTOMATION</text>
+    <text x="175" y="560" class="label">Automated Pipelines</text>
+    <text x="175" y="588" class="meta">Change reviews · evidence requests</text>
+  </g>
+  <g>
+    <rect x="955" y="488" width="500" height="130" rx="16" fill="#111b2a" stroke="#344966" stroke-width="1.5"/>
+    <text x="985" y="525" class="tier">WORKLOAD · INTERACTIVE</text>
+    <text x="985" y="560" class="label">Ask Chrimata Agent</text>
+    <text x="985" y="588" class="meta">Interactive LLM · streaming answers</text>
+  </g>
+  <g>
+    <rect x="155" y="727" width="430" height="112" rx="16" fill="#101b1b" stroke="#28624f" stroke-width="1.5"/>
+    <text x="183" y="761" class="tier" fill="#6ac29e">RELATIONAL STATE</text>
+    <text x="183" y="794" class="label">PostgreSQL</text>
+    <text x="183" y="818" class="meta">Tickets · decisions · current status</text>
+  </g>
+  <g>
+    <rect x="1015" y="727" width="430" height="112" rx="16" fill="#21190f" stroke="#8b5c29" stroke-width="1.5"/>
+    <text x="1043" y="761" class="tier" fill="#e7b26d">SEMANTIC MEMORY</text>
+    <text x="1043" y="794" class="label">Hindsight Memory</text>
+    <text x="1043" y="818" class="meta">Retains decisions · recalls past outcomes</text>
+  </g>
+
+  <circle cx="75" cy="874" r="5" fill="#6797e8"/><text x="89" y="879" class="small">request and response flow</text>
+  <circle cx="291" cy="874" r="5" fill="#56bb91"/><text x="305" y="879" class="small">PostgreSQL state</text>
+  <circle cx="453" cy="874" r="5" fill="#d79548"/><text x="467" y="879" class="small">Hindsight memory</text>
+</svg>

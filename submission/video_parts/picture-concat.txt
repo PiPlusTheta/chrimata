@@ -1,0 +1,6 @@
+file '/Users/piplustheta/Documents/Github/chrimata/submission/video_parts/intro.mp4'
+file '/Users/piplustheta/Documents/Github/chrimata/submission/video_parts/original-opening.mp4'
+file '/Users/piplustheta/Documents/Github/chrimata/submission/video_parts/problem.mp4'
+file '/Users/piplustheta/Documents/Github/chrimata/submission/video_parts/original-main.mp4'
+file '/Users/piplustheta/Documents/Github/chrimata/submission/video_parts/takeaway.mp4'
+file '/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s12_close_base.mp4'

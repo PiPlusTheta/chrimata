@@ -1,0 +1,4 @@
+file '/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s09_ask_ramped.mp4'
+file '/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s10_breadth_base.mp4'
+file '/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s11_return_base.mp4'
+file '/Users/piplustheta/Documents/Github/chrimata/brag-output-v2/work/clips/s12_architecture.mp4'

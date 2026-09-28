@@ -1,0 +1,318 @@
+1
+00:00:00,500 --> 00:00:03,675
+We are Niloy Nath and Nitesh Gupta—we’re
+team
+
+2
+00:00:03,675 --> 00:00:04,866
+n cubed t.
+
+3
+00:00:04,866 --> 00:00:08,041
+Together, we built Chrimata, a financial
+due diligence
+
+4
+00:00:08,041 --> 00:00:11,216
+workspace that ties each claim to its
+source
+
+5
+00:00:11,216 --> 00:00:14,391
+documents, captures why an analyst made a
+decision,
+
+6
+00:00:14,391 --> 00:00:17,566
+and brings that reasoning into the next
+review.
+
+7
+00:00:17,566 --> 00:00:20,344
+The question that drove us was simple:
+
+8
+00:00:20,344 --> 00:00:23,519
+when new evidence changes a number, can an
+
+9
+00:00:23,519 --> 00:00:26,694
+agent explain what changed without
+forgetting why the
+
+10
+00:00:26,694 --> 00:00:28,679
+team made its earlier call?
+
+11
+00:00:28,679 --> 00:00:31,060
+Let’s show you how it works.
+
+12
+00:00:31,833 --> 00:00:33,724
+Every deal has a story.
+
+13
+00:00:33,724 --> 00:00:35,993
+And every decision leaves a trail.
+
+14
+00:00:36,483 --> 00:00:37,433
+Meet Chrimata.
+
+15
+00:00:37,433 --> 00:00:41,230
+Due diligence rebuilt around the evidence,
+the context,
+
+16
+00:00:41,230 --> 00:00:43,603
+and every decision that follows.
+
+17
+00:00:45,033 --> 00:00:46,713
+All right, let's step inside.
+
+18
+00:00:47,783 --> 00:00:51,463
+And here, every live mandate—clear at a
+glance.
+
+19
+00:00:52,533 --> 00:00:54,923
+And from there, the review queue links
+each
+
+20
+00:00:54,923 --> 00:00:57,013
+open question to the evidence behind it.
+
+21
+00:00:58,633 --> 00:01:01,981
+So, follow a claim back to its source.
+
+22
+00:01:01,981 --> 00:01:05,329
+One click brings up the document, the
+exact
+
+23
+00:01:05,329 --> 00:01:06,584
+page, the evidence.
+
+24
+00:01:06,584 --> 00:01:08,676
+No more hunting through folders.
+
+25
+00:01:08,676 --> 00:01:09,513
+No guesswork.
+
+26
+00:01:11,033 --> 00:01:13,141
+And now, new evidence lands.
+
+27
+00:01:13,141 --> 00:01:16,513
+See what changed, and which findings it
+touches.
+
+28
+00:01:16,513 --> 00:01:19,886
+Your team can keep moving without starting
+the
+
+29
+00:01:19,886 --> 00:01:20,729
+review over.
+
+30
+00:01:20,729 --> 00:01:21,993
+No lost context.
+
+31
+00:01:26,333 --> 00:01:28,013
+And then there’s Hindsight.
+
+32
+00:01:28,013 --> 00:01:31,373
+It remembers why decisions were made, not
+just
+
+33
+00:01:31,373 --> 00:01:31,793
+what.
+
+34
+00:01:31,793 --> 00:01:35,153
+So when a familiar issue returns, the
+reasoning
+
+35
+00:01:35,153 --> 00:01:38,093
+is already there, when it matters most.
+
+36
+00:01:39,083 --> 00:01:40,903
+Here’s the failure mode.
+
+37
+00:01:40,903 --> 00:01:44,543
+New evidence changes MRR, but it doesn’t
+automatically
+
+38
+00:01:44,543 --> 00:01:46,818
+invalidate the analyst’s earlier
+explanation.
+
+39
+00:01:46,818 --> 00:01:50,458
+Without memory, the agent sees the latest
+numbers
+
+40
+00:01:50,458 --> 00:01:54,098
+and open questions, but not why a related
+
+41
+00:01:54,098 --> 00:01:55,463
+issue was resolved.
+
+42
+00:01:55,463 --> 00:01:59,103
+It can reopen the same work or ask
+
+43
+00:01:59,103 --> 00:02:01,378
+for the same evidence again.
+
+44
+00:02:01,378 --> 00:02:05,018
+Chrimata runs that review twice—first
+without memory, then
+
+45
+00:02:05,018 --> 00:02:08,203
+with Hindsight—so we can compare the
+results.
+
+46
+00:02:14,067 --> 00:02:17,090
+And when it’s time to ask a question,
+
+47
+00:02:17,090 --> 00:02:18,980
+just ask in plain language.
+
+48
+00:02:18,980 --> 00:02:22,003
+Chrimata brings in the history, the
+evidence, the
+
+49
+00:02:22,003 --> 00:02:25,027
+context—so your answer actually moves the
+work forward.
+
+50
+00:02:26,017 --> 00:02:28,657
+Every answer, grounded in the source.
+
+51
+00:02:35,067 --> 00:02:36,418
+Here’s the flow.
+
+52
+00:02:36,418 --> 00:02:40,022
+The interface sends an analyst’s decision
+through the
+
+53
+00:02:40,022 --> 00:02:43,627
+API gateway—over REST, or as a live
+stream.
+
+54
+00:02:43,627 --> 00:02:47,231
+The gateway routes review pipelines for
+change reviews
+
+55
+00:02:47,231 --> 00:02:50,835
+and evidence requests, or sends questions
+to the
+
+56
+00:02:50,835 --> 00:02:51,736
+Ask agent.
+
+57
+00:02:51,736 --> 00:02:54,439
+PostgreSQL tracks each ticket and status.
+
+58
+00:02:54,439 --> 00:02:58,044
+Hindsight retains the decision and
+reasoning, then recalls
+
+59
+00:02:58,044 --> 00:03:00,747
+past outcomes when similar issues return.
+
+60
+00:03:05,300 --> 00:03:08,653
+What surprised me is that the hardest part
+
+61
+00:03:08,653 --> 00:03:10,748
+isn’t finding the new number;
+
+62
+00:03:10,748 --> 00:03:14,101
+it’s remembering why the team treated it
+that
+
+63
+00:03:14,101 --> 00:03:14,520
+way.
+
+64
+00:03:14,520 --> 00:03:17,873
+Hindsight brings back the earlier decision
+and explanation,
+
+65
+00:03:17,873 --> 00:03:20,388
+while PostgreSQL tracks current ticket
+state.
+
+66
+00:03:20,388 --> 00:03:23,741
+The agent still checks today’s evidence,
+and a
+
+67
+00:03:23,741 --> 00:03:26,255
+real contradiction can change the outcome.
+
+68
+00:03:26,255 --> 00:03:28,770
+Memory doesn’t make a decision permanent;
+
+69
+00:03:28,770 --> 00:03:32,123
+it gives the next review enough context to
+
+70
+00:03:32,123 --> 00:03:33,380
+question it intelligently.
+
+71
+00:03:35,058 --> 00:03:35,658
+Chrimata.
+
+72
+00:03:35,658 --> 00:03:39,858
+Due diligence, rebuilt for the
+intelligence era.
