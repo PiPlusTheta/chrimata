@@ -53,7 +53,11 @@ export default function DashboardQueue() {
     if (!summary) return;
     const rows: (string | number)[][] = [["company", "run_id", "documents", "open_issues"], [summary.company_name, summary.run_id, summary.document_count, summary.open_issue_count], [], ["metric", "status", "amount_paise", "months"]];
     for (const metric of summary.metrics) rows.push([metric.metric, metric.status, metric.amount_paise ?? "", metric.months ?? ""]);
-    const csv = rows.map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n");
+    // CSV injection guard: a cell starting with =, +, -, @, tab, or CR is interpreted
+    // as a formula by Excel/Sheets when opened. Values here come from claim/metric
+    // text an analyst may have typed, so prefix with a bare quote to force text mode.
+    const escapeCsvCell = (value: string) => (/^[=+\-@\t\r]/.test(value) ? `'${value}` : value);
+    const csv = rows.map((row) => row.map((value) => `"${escapeCsvCell(String(value)).replaceAll('"', '""')}"`).join(",")).join("\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
     const link = document.createElement("a");
     link.href = url;
